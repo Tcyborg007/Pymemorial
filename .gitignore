@@ -53,3 +53,6 @@ Thumbs.db
 # Project specific
 memorial.json
 *.log
+
+# Backups corrompidos
+*.corrupted
