@@ -1,6 +1,6 @@
 """Testes da interface base de seções."""
 import pytest
-from pymemorial.sections.base import SectionProperties, SectionAnalyzer
+from pymemorial.sections.section_base import SectionProperties, SectionAnalyzer
 
 
 class DummySection(SectionAnalyzer):

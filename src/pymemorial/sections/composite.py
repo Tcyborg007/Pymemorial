@@ -1,5 +1,5 @@
 """Seção composta (stub temporário)."""
-from .base import SectionAnalyzer, SectionProperties
+from .section_base import SectionAnalyzer, SectionProperties
 
 
 class CompositeSection(SectionAnalyzer):

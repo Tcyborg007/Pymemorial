@@ -1,0 +1,741 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dimensionamento de Viga Biapoiada</title>
+    
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 20px;
+            }
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                overflow: hidden;
+            }
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 40px;
+                text-align: center;
+            }
+            .header h1 {
+                font-size: 2.5em;
+                margin-bottom: 10px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            }
+            .header .project { font-size: 1.2em; opacity: 0.9; }
+            .header .meta { margin-top: 15px; font-size: 0.9em; opacity: 0.8; }
+            .content { padding: 40px; }
+            .section { margin-bottom: 40px; }
+            .section h2 {
+                color: #667eea;
+                border-bottom: 3px solid #667eea;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+                font-size: 1.8em;
+            }
+            .subtitle { color: #666; font-style: italic; margin-bottom: 20px; }
+            .equation-block {
+                background: #f8f9fa;
+                border-left: 4px solid #667eea;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .equation-block:hover {
+                transform: translateX(5px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            }
+            .equation-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+            .equation-label { font-weight: bold; color: #333; font-size: 1.1em; }
+            .granularity-badge {
+                padding: 5px 15px;
+                border-radius: 20px;
+                font-size: 0.75em;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+            .granularity-badge.minimal { background: #28a745; color: white; }
+            .granularity-badge.normal { background: #17a2b8; color: white; }
+            .granularity-badge.detailed { background: #dc3545; color: white; }
+            .steps-container { margin-top: 15px; }
+            .step {
+                padding: 15px;
+                margin-bottom: 10px;
+                border-radius: 6px;
+                background: white;
+                border: 1px solid #dee2e6;
+            }
+            .step-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 10px;
+            }
+            .step-number {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 30px;
+                height: 30px;
+                background: #667eea;
+                color: white;
+                border-radius: 50%;
+                font-weight: bold;
+                margin-right: 10px;
+                flex-shrink: 0;
+            }
+            .step-description { color: #666; font-size: 0.9em; font-weight: 600; }
+            .step-content {
+                padding-left: 40px;
+            }
+            .step-math {
+                font-size: 1.2em;
+                padding: 15px;
+                background: white;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .equals-sign {
+                font-size: 1.5em;
+                color: #667eea;
+                font-weight: bold;
+                margin: 0 10px;
+            }
+            .numeric-value {
+                color: #28a745;
+                font-weight: bold;
+                padding: 5px 15px;
+                background: #d4edda;
+                border-radius: 4px;
+                font-size: 1.1em;
+            }
+            .step-symbolic {
+                background: linear-gradient(to right, #e3f2fd, white);
+                border-left: 3px solid #2196F3;
+            }
+            .step-substitution {
+                background: linear-gradient(to right, #fff3e0, white);
+                border-left: 3px solid #ff9800;
+            }
+            .step-intermediate {
+                background: linear-gradient(to right, #f3e5f5, white);
+                border-left: 3px solid #9c27b0;
+            }
+            .step-result {
+                background: linear-gradient(to right, #e8f5e9, white);
+                border-left: 3px solid #4caf50;
+                font-weight: bold;
+            }
+            .result-only {
+                padding: 20px;
+                background: white;
+                border-radius: 6px;
+                text-align: center;
+            }
+            .comparison-table {
+                margin-top: 30px;
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .comparison-table h3 { color: #667eea; margin-bottom: 20px; font-size: 1.5em; }
+            table { width: 100%; border-collapse: collapse; }
+            thead { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+            tbody tr:hover { background: #f8f9fa; }
+            .numeric { font-family: 'Courier New', monospace; font-weight: bold; color: #667eea; }
+            .unit { font-weight: bold; color: #667eea; }
+            .description { color: #666; font-style: italic; font-size: 0.9em; }
+            .badge-type { padding: 3px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; }
+            .badge-type.calculated { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+            .badge-type.input { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+            code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; color: #d63384; }
+            .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-top: 1px solid #dee2e6; }
+        </style>
+        
+    
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            startup: {
+                ready: () => {
+                    console.log('MathJax ready!');
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax typeset complete!');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📐 Dimensionamento de Viga Biapoiada</h1>
+            <div class="project">Edifício Residencial - Bloco A</div>
+            <div class="meta">Gerado em: 18/10/2025 às 13:24:17 | PyMemorial v1.0</div>
+        </div>
+        <div class="content">
+            
+        <div class="section">
+            <h2>1. Dados de Entrada</h2>
+            <p class="subtitle">Geometria e carregamentos</p>
+        
+        <div class="section">
+            <h2>2. Propriedades Geométricas</h2>
+            <p class="subtitle">Modo MINIMAL</p>
+        
+        <div class="equation-block">
+            <div class="equation-header">
+                <span class="equation-label">Área da seção</span>
+                <span class="granularity-badge minimal">MINIMAL</span>
+            </div>
+        
+            <div class="result-only">
+                <div class="step-math">$$0.1$$ <span class="equals-sign">=</span> <span class="numeric-value">0.1000</span></div>
+            </div>
+            </div>
+        <div class="equation-block">
+            <div class="equation-header">
+                <span class="equation-label">Momento de inércia</span>
+                <span class="granularity-badge minimal">MINIMAL</span>
+            </div>
+        
+            <div class="result-only">
+                <div class="step-math">$$0.00208333333333333$$ <span class="equals-sign">=</span> <span class="numeric-value">0.0021</span></div>
+            </div>
+            </div>
+        <div class="section">
+            <h2>3. Esforços Solicitantes</h2>
+            <p class="subtitle">Modo NORMAL</p>
+        
+        <div class="equation-block">
+            <div class="equation-header">
+                <span class="equation-label">Momento fletor máximo</span>
+                <span class="granularity-badge normal">NORMAL</span>
+            </div>
+        <div class="steps-container">
+                <div class="step step-symbolic">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-description">Expressão simbólica</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{L^{2} q}{8} + \frac{b q}{h}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-substitution">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-description">Substituição de valores</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$0.2 \cdot 15.0 \frac{1}{0.5} + \frac{15.0 {6.0}^{2}}{8}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-description">Resultado final</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$73.5$$ <span class="equals-sign">=</span><span class="numeric-value">73.5000</span></div>
+                    </div>
+                </div>
+                </div></div>
+        <div class="equation-block">
+            <div class="equation-header">
+                <span class="equation-label">Força cortante máxima</span>
+                <span class="granularity-badge normal">NORMAL</span>
+            </div>
+        <div class="steps-container">
+                <div class="step step-symbolic">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-description">Expressão simbólica</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{L q}{2}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-substitution">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-description">Substituição de valores</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$15.0 \cdot 6.0 \cdot \frac{1}{2}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-description">Resultado final</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$45.0$$ <span class="equals-sign">=</span><span class="numeric-value">45.0000</span></div>
+                    </div>
+                </div>
+                </div></div>
+        <div class="section">
+            <h2>4. Verificação de Tensões</h2>
+            <p class="subtitle">Modo DETAILED</p>
+        
+        <div class="equation-block">
+            <div class="equation-header">
+                <span class="equation-label">Módulo de resistência</span>
+                <span class="granularity-badge detailed">DETAILED</span>
+            </div>
+        <div class="steps-container">
+                <div class="step step-symbolic">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-description">Expressão simbólica</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{b h^{2}}{6}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-substitution">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-description">Substituição de valores</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{0.2 {0.5}^{2}}{6}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-description">Cálculo de potência</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$0.2 \cdot 0.25 \cdot \frac{1}{6}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <span class="step-description">Cálculo de potência</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$0.2 \cdot 0.25 \cdot 0.166666666666667$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">5</span>
+                        <span class="step-description">Multiplicação</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$0.05 \cdot 0.166666666666667$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">6</span>
+                        <span class="step-description">Resultado final</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$0.00833333333333333$$ <span class="equals-sign">=</span><span class="numeric-value">0.0083</span></div>
+                    </div>
+                </div>
+                </div></div>
+        <div class="equation-block">
+            <div class="equation-header">
+                <span class="equation-label">Tensão normal máxima</span>
+                <span class="granularity-badge detailed">DETAILED</span>
+            </div>
+        <div class="steps-container">
+                <div class="step step-symbolic">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-description">Expressão simbólica</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{M}{W}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-substitution">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-description">Substituição de valores</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{73.5}{0.00833333333333333}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-description">Cálculo de potência</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$73.5 \cdot 120.0$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <span class="step-description">Resultado final</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$8820.0$$ <span class="equals-sign">=</span><span class="numeric-value">8820.0000</span></div>
+                    </div>
+                </div>
+                </div></div>
+        <div class="equation-block">
+            <div class="equation-header">
+                <span class="equation-label">Tensão cisalhante</span>
+                <span class="granularity-badge detailed">DETAILED</span>
+            </div>
+        <div class="steps-container">
+                <div class="step step-symbolic">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-description">Expressão simbólica</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{3 V}{2 A}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-substitution">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-description">Substituição de valores</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$3 \cdot 45.0 \frac{1}{0.1 \cdot 2}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-description">Multiplicação</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$3 \cdot 45.0 \frac{1}{0.2}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <span class="step-description">Cálculo de potência</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$3 \cdot 45.0 \cdot 5.0$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">5</span>
+                        <span class="step-description">Multiplicação</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$135.0 \cdot 5.0$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">6</span>
+                        <span class="step-description">Resultado final</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$675.0$$ <span class="equals-sign">=</span><span class="numeric-value">675.0000</span></div>
+                    </div>
+                </div>
+                </div></div>
+        <div class="section">
+            <h2>5. Verificações NBR 6118</h2>
+            
+        
+        <div class="equation-block">
+            <div class="equation-header">
+                <span class="equation-label">Tensão admissível</span>
+                <span class="granularity-badge detailed">DETAILED</span>
+            </div>
+        <div class="steps-container">
+                <div class="step step-symbolic">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-description">Expressão simbólica</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{fck}{1.4}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-substitution">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-description">Substituição de valores</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{30.0}{1.4}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-description">Cálculo de potência</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$30.0 \cdot 0.714285714285714$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <span class="step-description">Resultado final</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$21.4285714285714$$ <span class="equals-sign">=</span><span class="numeric-value">21.4286</span></div>
+                    </div>
+                </div>
+                </div></div>
+        <div class="equation-block">
+            <div class="equation-header">
+                <span class="equation-label">Taxa de utilização</span>
+                <span class="granularity-badge detailed">DETAILED</span>
+            </div>
+        <div class="steps-container">
+                <div class="step step-symbolic">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-description">Expressão simbólica</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{\sigma}{\sigma_{adm}}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-substitution">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-description">Substituição de valores</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$\frac{8820.0}{21.4285714285714}$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-description">Cálculo de potência</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$8820.0 \cdot 0.0466666666666667$$ </div>
+                    </div>
+                </div>
+                
+                <div class="step step-intermediate">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <span class="step-description">Resultado final</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-math">$$411.6$$ <span class="equals-sign">=</span><span class="numeric-value">411.6000</span></div>
+                    </div>
+                </div>
+                </div></div>
+        <div class="comparison-table">
+            <h3>📊 Resumo das Variáveis</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Variável</th>
+                        <th>Símbolo</th>
+                        <th>Valor</th>
+                        <th>Unidade</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                    </tr>
+                </thead>
+                <tbody>
+        
+                <tr>
+                    <td><code>L</code></td>
+                    <td>$$L$$</td>
+                    <td class="numeric">6.0000</td>
+                    <td class="unit">m</td>
+                    <td><span class="badge-type input">Entrada</span></td>
+                    <td class="description">Vão da viga</td>
+                </tr>
+            
+                <tr>
+                    <td><code>q</code></td>
+                    <td>$$q$$</td>
+                    <td class="numeric">15.0000</td>
+                    <td class="unit">kN/m</td>
+                    <td><span class="badge-type input">Entrada</span></td>
+                    <td class="description">Carga distribuída</td>
+                </tr>
+            
+                <tr>
+                    <td><code>b</code></td>
+                    <td>$$b$$</td>
+                    <td class="numeric">0.2000</td>
+                    <td class="unit">m</td>
+                    <td><span class="badge-type input">Entrada</span></td>
+                    <td class="description">Largura da seção</td>
+                </tr>
+            
+                <tr>
+                    <td><code>h</code></td>
+                    <td>$$h$$</td>
+                    <td class="numeric">0.5000</td>
+                    <td class="unit">m</td>
+                    <td><span class="badge-type input">Entrada</span></td>
+                    <td class="description">Altura da seção</td>
+                </tr>
+            
+                <tr>
+                    <td><code>fck</code></td>
+                    <td>$$fck$$</td>
+                    <td class="numeric">30.0000</td>
+                    <td class="unit">MPa</td>
+                    <td><span class="badge-type input">Entrada</span></td>
+                    <td class="description">Resistência do concreto</td>
+                </tr>
+            
+                <tr>
+                    <td><code>A</code></td>
+                    <td>$$A$$</td>
+                    <td class="numeric">0.1000</td>
+                    <td class="unit">-</td>
+                    <td><span class="badge-type calculated">Calculado</span></td>
+                    <td class="description">Área da seção</td>
+                </tr>
+            
+                <tr>
+                    <td><code>I</code></td>
+                    <td>$$I$$</td>
+                    <td class="numeric">0.0021</td>
+                    <td class="unit">-</td>
+                    <td><span class="badge-type calculated">Calculado</span></td>
+                    <td class="description">Momento de inércia</td>
+                </tr>
+            
+                <tr>
+                    <td><code>M</code></td>
+                    <td>$$M$$</td>
+                    <td class="numeric">73.5000</td>
+                    <td class="unit">-</td>
+                    <td><span class="badge-type calculated">Calculado</span></td>
+                    <td class="description">Momento fletor máximo</td>
+                </tr>
+            
+                <tr>
+                    <td><code>V</code></td>
+                    <td>$$V$$</td>
+                    <td class="numeric">45.0000</td>
+                    <td class="unit">-</td>
+                    <td><span class="badge-type calculated">Calculado</span></td>
+                    <td class="description">Força cortante máxima</td>
+                </tr>
+            
+                <tr>
+                    <td><code>W</code></td>
+                    <td>$$W$$</td>
+                    <td class="numeric">0.0083</td>
+                    <td class="unit">-</td>
+                    <td><span class="badge-type calculated">Calculado</span></td>
+                    <td class="description">Módulo de resistência</td>
+                </tr>
+            
+                <tr>
+                    <td><code>sigma</code></td>
+                    <td>$$sigma$$</td>
+                    <td class="numeric">8820.0000</td>
+                    <td class="unit">-</td>
+                    <td><span class="badge-type calculated">Calculado</span></td>
+                    <td class="description">Tensão normal máxima</td>
+                </tr>
+            
+                <tr>
+                    <td><code>tau</code></td>
+                    <td>$$tau$$</td>
+                    <td class="numeric">675.0000</td>
+                    <td class="unit">-</td>
+                    <td><span class="badge-type calculated">Calculado</span></td>
+                    <td class="description">Tensão cisalhante</td>
+                </tr>
+            
+                <tr>
+                    <td><code>sigma_adm</code></td>
+                    <td>$$sigma_adm$$</td>
+                    <td class="numeric">21.4286</td>
+                    <td class="unit">-</td>
+                    <td><span class="badge-type calculated">Calculado</span></td>
+                    <td class="description">Tensão admissível</td>
+                </tr>
+            
+                <tr>
+                    <td><code>taxa_uso</code></td>
+                    <td>$$taxa_uso$$</td>
+                    <td class="numeric">411.6000</td>
+                    <td class="unit">-</td>
+                    <td><span class="badge-type calculated">Calculado</span></td>
+                    <td class="description">Taxa de utilização</td>
+                </tr>
+            
+                </tbody>
+            </table>
+        </div>
+        
+        </div>
+        <div class="footer">
+            <p>Memorial de Cálculo gerado automaticamente pela biblioteca <strong>PyMemorial</strong></p>
+            <p>Todos os cálculos foram verificados e estão em conformidade com as normas técnicas vigentes</p>
+        </div>
+    </div>
+</body>
+</html>
+        

@@ -3,7 +3,7 @@ Adapters para conversão entre modelos estruturais e backends.
 """
 from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
-from .base import StructuralBackend
+from .backend_base import StructuralBackend
 
 
 class StructuralAdapter(ABC):

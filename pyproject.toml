@@ -137,6 +137,10 @@ mkdocstrings = { version = ">=0.24", extras = ["python"] }
 # ---------------------------
 # Qualidade de código
 # ---------------------------
+
+[tool.poetry.group.backends.dependencies]
+pynitefea = "^1.5.0"
+
 [tool.black]
 line-length = 100
 target-version = ["py310", "py311", "py312", "py313"]

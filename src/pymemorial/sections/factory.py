@@ -2,7 +2,7 @@
 Factory para criação de seções transversais.
 """
 from typing import Optional
-from .base import SectionAnalyzer
+from .section_base import SectionAnalyzer
 
 
 class SectionFactory:

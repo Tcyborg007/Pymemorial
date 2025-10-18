@@ -2,7 +2,7 @@
 Backend para Pynite (análise linear de estruturas reticuladas).
 """
 from typing import Dict
-from .base import StructuralBackend, Node, Member
+from .backend_base import StructuralBackend, Node, Member
 
 try:
     from Pynite import FEModel3D

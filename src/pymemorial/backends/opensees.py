@@ -2,7 +2,7 @@
 Backend para OpenSeesPy (análise não-linear de estruturas).
 """
 from typing import Dict
-from .base import StructuralBackend, Node, Member
+from .backend_base import StructuralBackend, Node, Member
 
 try:
     import openseespy.opensees as ops

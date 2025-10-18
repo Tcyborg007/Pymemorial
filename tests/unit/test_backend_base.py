@@ -1,6 +1,6 @@
 """Testes da interface base de backends."""
 import pytest
-from pymemorial.backends.base import StructuralBackend, Node, Member
+from pymemorial.backends.backend_base import StructuralBackend, Node, Member
 
 
 class MockBackend(StructuralBackend):

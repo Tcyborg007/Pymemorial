@@ -2,7 +2,7 @@
 Factory para criação de backends estruturais.
 """
 from typing import Optional
-from .base import StructuralBackend
+from .backend_base import StructuralBackend
 
 
 class BackendFactory:

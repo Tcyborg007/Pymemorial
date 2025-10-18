@@ -54,6 +54,7 @@ def test_equation_empty_variables():
     x = sp.Symbol("x")
     eq = Equation(expression=x**2)
     
-    # Substituição com variável não registrada não deve causar erro
+    # Com o novo substitute(), agora PODE substituir símbolos na expressão
+    # mesmo que não estejam em variables
     result = eq.substitute(x=4.0)
-    assert result == x**2  # Não substitui pois x não está em variables
+    assert result == 16.0  # x=4 => x^2 = 16

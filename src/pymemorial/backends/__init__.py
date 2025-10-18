@@ -1,5 +1,5 @@
 """Backends estruturais para análise."""
-from .base import StructuralBackend, Node, Member, Load, Support
+from .backend_base import StructuralBackend, Node, Member, Load, Support
 from .factory import BackendFactory
 from .adapter import StructuralAdapter, SimpleFrameAdapter
 

@@ -1,5 +1,5 @@
 """Módulo de análise de seções transversais."""
-from .base import SectionAnalyzer, SectionProperties
+from .section_base import SectionAnalyzer, SectionProperties
 from .factory import SectionFactory
 
 __all__ = [
