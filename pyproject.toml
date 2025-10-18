@@ -1,0 +1,243 @@
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project]
+name = "pymemorial"
+version = "0.1.0"
+description = "PyMemorial 2.0 — Memoriais de cálculo estrutural (SymPy, multi-backend OpenSees/PyNite), unidades físicas, visualização 2D/3D, otimização (Pyomo) e exportação ABNT."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = "MIT"                # ← SPDX no lugar de { file = "LICENSE" }
+authors = [
+  { name = "Equipe PyMemorial", email = "contato@pymemorial.org" }
+]
+keywords = [
+  "structural-engineering",
+  "civil-engineering",
+  "sympy",
+  "opensees",
+  "pynite",
+  "pyvista",
+  "optimization",
+  "pyomo",
+  "latex",
+  "abntex2",
+  "weasyprint",
+  "quarto"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Education",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Text Processing :: Markup :: LaTeX",
+  "Operating System :: OS Independent"
+]
+
+dependencies = [
+  "sympy>=1.12,<2.0",
+  "numpy>=1.26",
+  "pandas>=2.0",
+  "scipy>=1.11",
+  "pint>=0.23",
+  "forallpeople>=2.7",
+  "jinja2>=3.1",
+  "weasyprint>=63",
+  "matplotlib>=3.8",
+  "rich>=13.7",
+  "click>=8.1",
+  "pydantic>=2.6",
+  "pynitefea (>=0.0.79) ; python_version >= \"3.10\" and python_version < \"3.13\""
+]
+
+# Extras (instale com: pip install pymemorial[backends] etc., ou poetry install -E backends)
+[project.optional-dependencies]
+backends-lite = [
+"PyNiteFEA>=0.0.79; python_version < '3.13'"
+]
+backends-opensees = [
+"openseespy>=3.5; python_version < '3.13'",
+"opstool>=1.0.19; python_version < '3.13'"
+]
+backends = [
+"PyNiteFEA>=0.0.79; python_version < '3.13'",
+"openseespy>=3.5; python_version < '3.13'",
+"opstool>=1.0.19; python_version < '3.13'"
+]
+sections = [
+"sectionproperties>=2.1.2",
+"concreteproperties>=0.5.1"
+]
+viz = [
+"pyvista>=0.44",
+"pyvistaqt>=0.11",
+"stpyvista>=0.0.11",
+"plotly>=5.20"
+]
+exporters = [
+"playwright>=1.45",
+"quarto-cli>=1.6.30"
+]
+optimize = [
+"pyomo>=6.8"
+]
+docs = [
+"sphinx>=8.0",
+"sphinx-rtd-theme>=3.0",
+"myst-parser>=3.0.0"
+]
+
+
+[project.scripts]
+pymemorial = "pymemorial.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/seu-usuario/pymemorial"
+Repository = "https://github.com/seu-usuario/pymemorial"
+Documentation = "https://pymemorial.readthedocs.io"
+Issues = "https://github.com/seu-usuario/pymemorial/issues"
+
+# Modo src layout: mantenha o mapeamento de pacotes pelo Poetry
+[tool.poetry]
+# Mantemos apenas a descoberta de pacotes, pois PEP 621 não cobre isso no Poetry
+packages = [{ include = "pymemorial", from = "src" }]
+
+# Grupos de dependências (não empacotadas) seguem em [tool.poetry.group.*]
+[tool.poetry.group.dev.dependencies]
+black = ">=24.8"
+ruff = ">=0.6"
+mypy = ">=1.10"
+pre-commit = ">=3.7"
+commitizen = ">=3.27"
+bumpver = ">=2023.1126"
+ipython = ">=8.24"
+ipdb = ">=0.13"
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=8.2"
+pytest-cov = ">=5.0"
+pytest-benchmark = ">=4.0"
+pytest-xdist = ">=3.5"
+hypothesis = ">=6.103"
+coverage = ">=7.6"
+freezegun = ">=1.5"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = ">=1.6"
+mkdocs-material = ">=9.5"
+mkdocstrings = { version = ">=0.24", extras = ["python"] }
+
+# ---------------------------
+# Qualidade de código
+# ---------------------------
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312", "py313"]
+skip-string-normalization = true
+exclude = '''
+/(
+    dist
+  | build
+  | .venv
+  | .git
+  | docs/_build
+  | node_modules
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E","F","W","N","I","B","UP","PT","PL","RUF"]
+ignore = ["E501"]
+extend-exclude = ["dist", "build", ".venv", "docs/_build"]
+fix = true
+unsafe-fixes = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["pymemorial"]
+combine-as-imports = true
+force-sort-within-sections = true
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+strict_optional = true
+ignore_missing_imports = true
+exclude = ["dist", "build", "docs/_build"]
+
+# ---------------------------
+# Testes e Coverage
+# ---------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra -q --cov=pymemorial --cov-report=term-missing --cov-report=xml --maxfail=1"
+xfail_strict = true
+log_cli = true
+log_cli_level = "INFO"
+filterwarnings = [
+  "ignore::DeprecationWarning",
+  "ignore::UserWarning"
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/pymemorial"]
+omit = [
+  "src/pymemorial/__init__.py",
+  "src/pymemorial/__version__.py"
+]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_empty = true
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:"
+]
+
+# ---------------------------
+# Versionamento e releases
+# ---------------------------
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+version_files = [
+  "src/pymemorial/__version__.py",
+  "pyproject.toml:version"
+]
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+
+
+
+[tool.bumpver]
+current_version = "0.1.0"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "chore(release): bump version {old_version} -> {new_version}"
+tag_message = "release: {new_version}"
+tag_scope = "default"
+search = [
+  "src/pymemorial/__version__.py",
+  "pyproject.toml"
+]
+replace = [
+  "src/pymemorial/__version__.py",
+  "pyproject.toml"
+]
