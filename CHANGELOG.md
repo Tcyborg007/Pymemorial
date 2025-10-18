@@ -45,3 +45,29 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Exemplo completo de dimensionamento de viga biapoiada
 - Suporte a templates `{{var}}` com substituição automática
 - Exportação para dict/JSON do memorial completo
+
+## [Unreleased]
+
+### Added
+- **Módulo Backends**: Sistema de backends estruturais (86%+ cobertura)
+  - `base.py`: Classes abstratas StructuralBackend com interface unificada
+  - `factory.py`: BackendFactory com detecção automática de backends instalados
+  - `pynite.py`: Backend Pynite para análise linear de estruturas 3D
+  - `opensees.py`: Backend OpenSeesPy para análise não-linear
+  - `adapter.py`: Sistema de adapters para conversão de modelos (dict → backend)
+- **21 testes unitários** para backends (base: 5, factory: 4, pynite: 4, opensees: 3, adapters: 5)
+- Factory pattern que detecta Pynite e OpenSees automaticamente
+- SimpleFrameAdapter: conversão JSON/dict → modelo estrutural
+- Método `analyze_and_get_results()` retorna deslocamentos e esforços
+- Suporte a materiais (aço 200 GPa) e seções (IPE200)
+- Apoios parametrizáveis (dx, dy, dz, rx, ry, rz)
+- Cargas nodais em qualquer direção (X, Y, Z)
+- Integração numérica Gauss-Lobatto (5 pontos) no OpenSees
+- Elementos dispBeamColumn com 6 graus de liberdade por nó
+- Testes estruturais: viga biapoiada, cantilever, cargas distribuídas
+- Compatibilidade com PyNiteFEA e openseespy
+
+### Fixed
+- Correção import `from .pynite import PyniteBackend` (minúsculo)
+- Correção beamIntegration tag no OpenSees (evita erro "BeamIntegrationRule not found")
+- Correção apoios estruturais (3 nós + restrições de rotação para estabilidade)
