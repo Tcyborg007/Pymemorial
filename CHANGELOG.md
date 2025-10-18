@@ -19,3 +19,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Fase 2: Recognition (parsing automático)
 - Fase 3: Builder (API fluente)
 - Fase 4: Backends (PyNite, OpenSees)
+
+## [Unreleased]
+
+### Added
+- **Módulo Recognition**: sistema de reconhecimento automático de variáveis
+  - `greek.py`: conversão bidirecional de símbolos gregos (Unicode ↔ ASCII)
+  - `patterns.py`: padrões regex compilados para variáveis, números, unidades
+  - `parser.py`: parser inteligente de variáveis com valores, unidades e descrições
+  - `text_processor.py`: processador de templates com placeholders `{{var}}`
+- **37 testes unitários** para recognition com 100% de cobertura
+- Suporte a variáveis customizadas (ex: `KL_pt_nb`) reconhecidas automaticamente
+- Validação de templates e detecção de placeholders malformados
+
