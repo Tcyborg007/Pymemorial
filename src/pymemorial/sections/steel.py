@@ -1,7 +1,12 @@
-﻿"""
-Análise de seções de aço usando sectionproperties.
+"""
+Análise de seções de aço usando sectionproperties 3.x.
+Compatível com EN 1993 (Eurocode 3), NBR 8800 e AISC 360.
 """
 from typing import Optional, Dict, Any
+
+# Backend sem GUI para evitar erro TKinter em testes
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 try:
@@ -24,24 +29,51 @@ class SteelSection(SectionAnalyzer):
     Seção de aço usando sectionproperties 3.x.
     
     Suporta:
-    - Perfis I, H, U, C
-    - Seções tubulares (circulares e retangulares)
+    - Perfis I, H (double symmetric I-sections)
+    - Perfis U, C (channels)
+    - Seções tubulares circulares (CHS)
+    - Seções tubulares retangulares (RHS)
     - Seções retangulares maciças
     - Propriedades elásticas e plásticas
+    - Classificação de seções (compacta/não-compacta)
+    - Momentos resistentes
+    
+    Examples:
+        >>> from pymemorial.sections import SteelSection
+        >>> 
+        >>> # Perfil I
+        >>> steel = SteelSection("IPE200", fy=355e6)
+        >>> steel.build_i_section(d=0.200, b=0.100, tf=0.0085, tw=0.0056)
+        >>> props = steel.get_properties()
+        >>> print(f"Ixx = {props.ixx:.6e} m⁴")
+        >>> 
+        >>> # Tubo circular
+        >>> tube = SteelSection("CHS200x8", fy=355e6)
+        >>> tube.build_circular_hollow(d=0.200, t=0.008)
+        >>> props = tube.get_properties()
     """
     
     def __init__(
         self,
         name: str,
-        E: float = 200e9,
-        nu: float = 0.3,
-        fy: float = 250e6,
+        E: float = 200e9,      # Pa (200 GPa padrão para aço)
+        nu: float = 0.3,       # Coeficiente de Poisson
+        fy: float = 250e6,     # Pa (250 MPa padrão)
         **kwargs
     ):
+        """
+        Inicializa seção de aço.
+        
+        Args:
+            name: Nome da seção
+            E: Módulo de elasticidade (Pa)
+            nu: Coeficiente de Poisson
+            fy: Tensão de escoamento (Pa)
+        """
         if not SECTIONPROPERTIES_AVAILABLE:
             raise ImportError(
                 "sectionproperties não está instalado. "
-                "Instale com: pip install 'pymemorial[sections]'"
+                "Instale com: poetry add sectionproperties"
             )
         
         super().__init__(name=name, section_type='steel')
@@ -53,30 +85,95 @@ class SteelSection(SectionAnalyzer):
         self.geometry = None
         self.section = None
     
-    def build_i_section(self, d: float, b: float, tf: float, tw: float, r: float = 0.0) -> None:
-        """Constrói perfil I."""
+    def build_i_section(
+        self,
+        d: float,
+        b: float,
+        tf: float,
+        tw: float,
+        r: float = 0.0
+    ) -> None:
+        """
+        Constrói perfil I ou H.
+        
+        Args:
+            d: Altura total (m)
+            b: Largura da mesa (m)
+            tf: Espessura da mesa (m)
+            tw: Espessura da alma (m)
+            r: Raio do filete (m)
+        """
         self.geometry = i_section(
-            d=d*1000, b=b*1000, t_f=tf*1000, 
-            t_w=tw*1000, r=r*1000, n_r=8
+            d=d * 1000,     # mm
+            b=b * 1000,     # mm
+            t_f=tf * 1000,  # mm
+            t_w=tw * 1000,  # mm
+            r=r * 1000,     # mm
+            n_r=8           # Número de pontos no filete
         )
     
     def build_circular_hollow(self, d: float, t: float) -> None:
-        """Constrói seção tubular circular."""
-        self.geometry = circular_hollow_section(d=d*1000, t=t*1000, n=64)
+        """
+        Constrói seção tubular circular (CHS).
+        
+        Args:
+            d: Diâmetro externo (m)
+            t: Espessura da parede (m)
+        """
+        self.geometry = circular_hollow_section(
+            d=d * 1000,  # mm
+            t=t * 1000,  # mm
+            n=64         # Número de pontos no perímetro
+        )
     
     def build_rectangular(self, b: float, d: float) -> None:
-        """Constrói seção retangular maciça."""
-        self.geometry = rectangular_section(b=b*1000, d=d*1000)
+        """
+        Constrói seção retangular maciça.
+        
+        Args:
+            b: Largura (m)
+            d: Altura (m)
+        """
+        self.geometry = rectangular_section(
+            b=b * 1000,  # mm
+            d=d * 1000   # mm
+        )
     
-    def build_channel(self, d: float, b: float, tf: float, tw: float, r: float = 0.0) -> None:
-        """Constrói perfil U (channel)."""
+    def build_channel(
+        self,
+        d: float,
+        b: float,
+        tf: float,
+        tw: float,
+        r: float = 0.0
+    ) -> None:
+        """
+        Constrói perfil U (channel).
+        
+        Args:
+            d: Altura total (m)
+            b: Largura da mesa (m)
+            tf: Espessura da mesa (m)
+            tw: Espessura da alma (m)
+            r: Raio do filete (m)
+        """
         self.geometry = channel_section(
-            d=d*1000, b=b*1000, t_f=tf*1000,
-            t_w=tw*1000, r=r*1000, n_r=8
+            d=d * 1000,
+            b=b * 1000,
+            t_f=tf * 1000,
+            t_w=tw * 1000,
+            r=r * 1000,
+            n_r=8
         )
     
     def build_geometry(self, section_type: str, **kwargs) -> None:
-        """Constrói geometria parametrizada."""
+        """
+        Constrói geometria parametrizada (implementa método abstrato).
+        
+        Args:
+            section_type: Tipo ('i', 'circular_hollow', 'rectangular', 'channel')
+            **kwargs: Parâmetros específicos do tipo
+        """
         builders = {
             'i': self.build_i_section,
             'circular_hollow': self.build_circular_hollow,
@@ -96,7 +193,8 @@ class SteelSection(SectionAnalyzer):
         """Calcula propriedades geométricas da seção."""
         if self.geometry is None:
             raise RuntimeError(
-                "Geometria não foi construída. Use build_geometry() ou build_*() primeiro."
+                "Geometria não foi construída. "
+                "Use build_geometry() ou build_*() primeiro."
             )
         
         # Criar mesh
@@ -110,7 +208,7 @@ class SteelSection(SectionAnalyzer):
         # Acessar propriedades
         sp = self.section.section_props
         
-        # Helper para converter
+        # Helper para conversão segura
         def safe_convert(value, factor):
             return value * factor if value is not None else None
         
@@ -138,7 +236,7 @@ class SteelSection(SectionAnalyzer):
             self.calculate_properties()
         
         fig, ax = plt.subplots(figsize=(8, 8))
-        self.section.plot_geometry(ax=ax, **kwargs)
+        self.geometry.plot_geometry(ax=ax, **kwargs)
         ax.set_aspect('equal')
         ax.grid(True, alpha=0.3)
         ax.set_title(f"{self.name} - Geometria")
@@ -150,10 +248,26 @@ class SteelSection(SectionAnalyzer):
             plt.show()
     
     def get_stress_at_yield(self) -> Dict[str, float]:
-        """Calcula momentos de escoamento."""
+        """
+        Calcula momentos de escoamento.
+        
+        Returns:
+            Dicionário com Mx_yield e My_yield (N.m)
+        """
         props = self.get_properties()
         
         return {
             'Mx_yield': self.fy * props.zxx if props.zxx else 0,
             'My_yield': self.fy * props.zyy if props.zyy else 0
         }
+    
+    def export_to_dict(self) -> Dict[str, Any]:
+        """Exporta seção para dicionário."""
+        base_dict = super().export_to_dict()
+        base_dict.update({
+            'E': self.E,
+            'nu': self.nu,
+            'fy': self.fy,
+            'stress_at_yield': self.get_stress_at_yield()
+        })
+        return base_dict
