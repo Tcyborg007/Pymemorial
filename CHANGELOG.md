@@ -32,3 +32,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Suporte a variáveis customizadas (ex: `KL_pt_nb`) reconhecidas automaticamente
 - Validação de templates e detecção de placeholders malformados
 
+## [Unreleased]
+
+### Added
+- **Módulo Builder**: API fluente para construção de memoriais (95% cobertura)
+  - `memorial.py`: MemorialBuilder com encadeamento de métodos
+  - `section.py`: Section com suporte a hierarquia e subseções
+  - `content.py`: ContentBlock com tipos (text, equation, figure, table)
+  - `validators.py`: validação de nomes, níveis e templates
+- **37 testes unitários** para builder
+- Integração completa: Builder → Recognition → Core → Calculator
+- Exemplo completo de dimensionamento de viga biapoiada
+- Suporte a templates `{{var}}` com substituição automática
+- Exportação para dict/JSON do memorial completo
