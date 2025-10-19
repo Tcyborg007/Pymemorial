@@ -1,6 +1,8 @@
-"""Testes do factory de seções."""
+"""Testes do SectionFactory."""
 import pytest
-from pymemorial.sections.factory import SectionFactory
+from pymemorial.sections import SectionFactory
+from pymemorial.sections.steel import SteelSection
+from pymemorial.sections.concrete import ConcreteSection, CONCRETEPROPERTIES_AVAILABLE
 
 
 def test_available_analyzers():
@@ -49,19 +51,19 @@ def test_create_steel_variants():
 
 
 @pytest.mark.skipif(
-    not SectionFactory.available_analyzers()['concrete'],
+    not CONCRETEPROPERTIES_AVAILABLE,
     reason="concreteproperties não instalado"
 )
 def test_create_concrete_section():
     """Testa criação de seção de concreto."""
     section = SectionFactory.create('concrete', 'TestConcrete')
     
+    assert isinstance(section, ConcreteSection)
     assert section.name == 'TestConcrete'
-    assert 'Concrete' in section.__class__.__name__
 
 
 @pytest.mark.skipif(
-    not SectionFactory.available_analyzers()['concrete'],
+    not CONCRETEPROPERTIES_AVAILABLE,  # ← CORRIGIDO
     reason="concreteproperties não instalado"
 )
 def test_create_concrete_variants():

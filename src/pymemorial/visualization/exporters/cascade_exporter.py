@@ -199,43 +199,53 @@ _default_exporter = None
 def export_figure(
     fig: Any,
     filename: str | Path,
-    format: ImageFormat = "png",
-    dpi: int = 300,
-    width: int = 1200,
-    height: int = 800,
+    config: Optional[ExportConfig] = None,
     **kwargs
 ) -> Path:
     """
     Quick export with automatic exporter selection.
     
-    Args:
-        fig: Figure to export (Plotly, Matplotlib, PyVista)
-        filename: Output filename
-        format: Image format (png, pdf, svg, jpg)
-        dpi: Resolution for raster formats
-        width: Width in pixels
-        height: Height in pixels
-        **kwargs: Additional ExportConfig parameters
+    Parameters
+    ----------
+    fig : Any
+        Figure to export
+    filename : str | Path
+        Output filename
+    config : ExportConfig, optional
+        Export configuration. If None, created from kwargs
+    **kwargs
+        Additional parameters for ExportConfig (dpi, width, height, etc)
     
-    Returns:
+    Returns
+    -------
+    Path
         Path to exported file
     
-    Example:
-        >>> from pymemorial.visualization.exporters import export_figure
-        >>> export_figure(fig, "diagram.png", dpi=300)
-        PosixPath('diagram.png')
+    Examples
+    --------
+    >>> from pymemorial.visualization import export_figure
+    >>> export_figure(fig, "output.png", dpi=300)
+    PosixPath('output.png')
+    
+    >>> # With explicit config
+    >>> config = ExportConfig(format='pdf', dpi=150)
+    >>> export_figure(fig, "output.pdf", config)
     """
     global _default_exporter
-    
     if _default_exporter is None:
         _default_exporter = CascadeExporter()
     
-    config = ExportConfig(
-        format=format,
-        dpi=dpi,
-        width=width,
-        height=height,
-        **kwargs
-    )
+    # **FIX: Create config from kwargs if not provided**
+    if config is None:
+        # Extract format from filename if not in kwargs
+        if 'format' not in kwargs:
+            suffix = Path(filename).suffix.lower().lstrip('.')
+            if suffix in ('png', 'pdf', 'svg', 'jpg', 'jpeg'):
+                kwargs['format'] = suffix
+        
+        config = ExportConfig(**kwargs)
     
     return _default_exporter.export(fig, filename, config)
+
+_default_exporter = None
+

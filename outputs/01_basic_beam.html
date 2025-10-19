@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathDown Document</title>
+    
+    <!-- MathJax Configuration -->
+    <script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['\(', '\)']],
+            displayMath: [['\[', '\]']],
+            processEscapes: true,
+            processEnvironments: true
+        },
+        options: {
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+        }
+    };
+    </script>
+    
+    <!-- Load MathJax -->
+    <script id="MathJax-script" async 
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+    </script>
+    
+    <!-- Styles -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            line-height: 1.8;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 { 
+            color: #2c3e50; 
+            font-size: 2em; 
+            margin-bottom: 0.5em;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        h2 { 
+            color: #2c3e50; 
+            font-size: 1.5em; 
+            margin-top: 1.5em; 
+            margin-bottom: 0.5em;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 5px;
+        }
+        
+        h3 { 
+            color: #34495e; 
+            font-size: 1.2em; 
+            margin-top: 1em; 
+            margin-bottom: 0.5em; 
+        }
+        
+        p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+        
+        .math-equation {
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        
+        .math-equation .description { 
+            font-style: italic; 
+            color: #555;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .math-display {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2em;
+            padding: 15px 0;
+        }
+        
+        .math-inline { 
+            margin: 15px 0;
+            padding: 10px 20px;
+            background: #fff;
+            border-left: 3px solid #95a5a6;
+        }
+        
+        .status {
+            font-weight: bold;
+            margin-left: 10px;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+        
+        .status.success { 
+            color: #27ae60; 
+            background: #d4edda;
+        }
+        
+        .status.warning { 
+            color: #e74c3c;
+            background: #f8d7da;
+        }
+        
+        figure {
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        figcaption {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        code {
+            font-family: 'Courier New', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+        
+        /* Loading indicator */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #95a5a6;
+            font-style: italic;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                max-width: 100%;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loading">Carregando equações matemáticas...</div>
+        <h1>Memorial de Cálculo - Viga Biapoiada</h1>
+<h2>1. Dados do Problema</h2>
+<p>Considere uma viga biapoiada submetida a uma carga uniformemente distribuída.
+
+Os dados de entrada são:</p>
+<p class="math-inline">\(q = \frac{10}{m} = 10.0 \, \text{kN/m}\)</p>
+<p class="math-inline">\(L = 6 = 6.0 \, \text{m}\)</p>
+<h2>2. Cálculo do Momento Máximo</h2>
+
+                <div class="math-equation">
+                    <p class="description"><em>sabemos que o momento fletor máximo (M_max) em uma viga biapoiada 
+   é definido pela fórmula</em></p>
+                    <p class="math-display">\[M_{max} = q \times L^2 / 8\]</p>
+                </div>
+                
+<p>Substituindo os valores fornecidos:</p>
+<p class="math-inline">\(M_{max} = 45 = 45.0\)</p>
+<p class="math-inline">\(M_{max} = 45 m · = 45.0 \, \text{kN}\)</p>
+<h2>3. Cálculo da Tensão</h2>
+<p>Considere uma seção com módulo de resistência:</p>
+<p class="math-inline">\(W = 8.0 \cdot 10^{-9} = 0.002 \, \text{m³}\)</p>
+<p>A tensão normal é calculada por:</p>
+
+                <div class="math-equation">
+                    <p class="description"><em>sabemos que a tensão é dada pela relação momento sobre módulo</em></p>
+                    <p class="math-display">\[\sigma = M_{max} / W\]</p>
+                </div>
+                
+<p>Substituindo:</p>
+<p class="math-inline">\(\sigma = 22500.0 = 22500.0\)</p>
+<p class="math-inline">\(\sigma = 22500 = 22500.0 \, \text{kPa}\)</p>
+<p class="math-inline">\(\sigma = 22.5 = 22.5 \, \text{MPa}\)</p>
+<h2>4. Verificação</h2>
+<p>A tensão de escoamento do aço é:</p>
+<p class="math-inline">\(f_{y} = 250 = 250.0 \, \text{MPa}\)</p>
+<p>Comparando com a tensão atuante:</p>
+<p class="math-inline">\(σ < f_{y}\) <span class="status success">(True)</span></p>
+<p>**Conclusão**: Como</p>
+<p class="math-inline">\(σ < f_{y}\) <span class="status success">(True)</span></p>
+<p>, a viga está **APROVADA**.
+
+A razão de utilização é:</p>
+<p class="math-inline">\(\eta = \frac{σ}{f_{y}} = 0.09\)</p>
+<p class="math-inline">\(\eta = 0.09 = 0.09\)</p>
+<p class="math-inline">\(\eta = 0.09 = 0.09\)</p>
+<p>Portanto, a viga está trabalhando a apenas **9%** de sua capacidade.</p>
+    </div>
+    
+    <!-- Remove loading message when MathJax is ready -->
+    <script>
+    MathJax.startup.promise.then(() => {
+        const loading = document.querySelector('.loading');
+        if (loading) loading.remove();
+    });
+    </script>
+</body>
+</html>
