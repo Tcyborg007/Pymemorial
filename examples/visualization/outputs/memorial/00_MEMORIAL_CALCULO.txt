@@ -1,0 +1,56 @@
+
+MEMORIAL DE CÁLCULO - VERIFICAÇÃO DE PILAR
+
+Projeto: Edifício Comercial São Paulo
+Local: São Paulo, SP
+Norma: NBR 8800:2024
+Responsável: Eng. João Silva, CREA-SP 12345
+Data: 2025-10-18
+
+======================================================================
+1. DADOS DA ESTRUTURA
+======================================================================
+
+Perfil: W310x107
+Aço: ASTM A572 Gr. 50 (fy = 345 MPa)
+Comprimento efetivo: 4.00 m
+
+Solicitações de cálculo:
+- Força axial: Nd = 1200 kN
+- Momento fletor: Mx,d = 150 kN·m
+
+======================================================================
+2. CAPACIDADES RESISTENTES
+======================================================================
+
+Força axial: NRd = 3741 kN
+Momento fletor: MRdx = 561 kN·m
+
+Referência: NBR 8800:2024 - Item 5.3.3
+
+======================================================================
+3. VERIFICAÇÃO INTERAÇÃO P-M
+======================================================================
+
+Razão de utilização: 41.75%
+Status: APROVADO ✓
+
+Ver: 01_pm_interaction.pdf
+
+======================================================================
+4. ANÁLISE DE DUCTILIDADE
+======================================================================
+
+Ductilidade: μ = 10.00
+Classificação: high
+Adequado NBR 8800: SIM ✓
+
+Ver: 02_moment_curvature.pdf
+
+======================================================================
+5. CONCLUSÃO
+======================================================================
+
+O pilar W310x107 ATENDE
+aos requisitos da NBR 8800:2024 para as solicitações especificadas.
+

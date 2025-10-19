@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memorial de Cálculo - Pilar Metálico W310x107</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        
+        header {
+            border-bottom: 3px solid #2c3e50;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .metadata-item {
+            padding: 5px;
+        }
+        
+        .metadata-item strong {
+            color: #2c3e50;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        h3 {
+            color: #34495e;
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .property-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .property-table th,
+        .property-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .property-table th {
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .property-table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .calculation {
+            background: #fff9e6;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #f39c12;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .reference {
+            background: #e8f5e9;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #4caf50;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+        
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .status.approved {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        
+        .status.rejected {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .diagram {
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .diagram img {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 5px;
+        }
+        
+        .diagram-caption {
+            font-weight: bold;
+            margin-top: 10px;
+            color: #2c3e50;
+        }
+        
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #ecf0f1;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .conclusion {
+            background: #e3f2fd;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 5px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Memorial de Cálculo - Pilar Metálico W310x107</h1>
+            <div class="metadata">
+                <div class="metadata-item"><strong>Projeto:</strong> Edifício Comercial São Paulo</div>
+                <div class="metadata-item"><strong>Responsável:</strong> Eng. João Silva, CREA-SP 12345</div>
+                <div class="metadata-item"><strong>Norma:</strong> NBR 8800:2024</div>
+                <div class="metadata-item"><strong>Revisão:</strong> 1.0</div>
+                <div class="metadata-item"><strong>Data:</strong> 2025-10-18</div>
+            </div>
+        </header>
+        
+        <h2>1. INTRODUÇÃO</h2>
+        <p>Este memorial apresenta a verificação estrutural do pilar W310x107 conforme NBR 8800:2024.</p>
+        
+        <h2>2. PROPRIEDADES DO MATERIAL</h2>
+        <p><strong>Material:</strong> ASTM A572 Gr. 50</p>
+        <table class="property-table">
+            <thead>
+                <tr>
+                    <th>Propriedade</th>
+                    <th>Símbolo</th>
+                    <th>Valor</th>
+                    <th>Unidade</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Tensão de escoamento</td>
+                    <td>f<sub>y</sub></td>
+                    <td>345</td>
+                    <td>MPa</td>
+                </tr>
+                <tr>
+                    <td>Módulo de elasticidade</td>
+                    <td>E</td>
+                    <td>200</td>
+                    <td>GPa</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>3. PROPRIEDADES DA SEÇÃO</h2>
+        <p><strong>Perfil:</strong> W310x107</p>
+        <table class="property-table">
+            <thead>
+                <tr>
+                    <th>Propriedade</th>
+                    <th>Símbolo</th>
+                    <th>Valor</th>
+                    <th>Unidade</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Área bruta</td>
+                    <td>A<sub>g</sub></td>
+                    <td>137.32</td>
+                    <td>cm²</td>
+                </tr>
+                <tr>
+                    <td>Raio de giração (x)</td>
+                    <td>r<sub>x</sub></td>
+                    <td>13.61</td>
+                    <td>cm</td>
+                </tr>
+                <tr>
+                    <td>Módulo plástico (x)</td>
+                    <td>Z<sub>x</sub></td>
+                    <td>1635</td>
+                    <td>cm³</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>4. SOLICITAÇÕES</h2>
+        <table class="property-table">
+            <thead>
+                <tr>
+                    <th>Solicitação</th>
+                    <th>Símbolo</th>
+                    <th>Valor</th>
+                    <th>Unidade</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Força axial de cálculo</td>
+                    <td>N<sub>d</sub></td>
+                    <td>1200</td>
+                    <td>kN</td>
+                </tr>
+                <tr>
+                    <td>Momento fletor de cálculo</td>
+                    <td>M<sub>d</sub></td>
+                    <td>150</td>
+                    <td>kN·m</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>5. CÁLCULOS DE CAPACIDADE</h2>
+        
+        <h3>5.1 Índice de Esbeltez</h3>
+        <div class="calculation">
+            λ = L / r<sub>x</sub> = 4.00 / 0.136 = 29.40
+        </div>
+        <div class="reference">
+            <strong>Referência:</strong> NBR 8800:2024 - Item 5.3.2
+        </div>
+        
+        <h3>5.2 Fator de Redução</h3>
+        <div class="calculation">
+            χ = 0.877 (para λ = 29.40 &lt; 100)
+        </div>
+        
+        <h3>5.3 Capacidade Axial</h3>
+        <div class="calculation">
+            N<sub>Rd</sub> = χ × A<sub>g</sub> × f<sub>y</sub> / γ<sub>a</sub><br>
+            N<sub>Rd</sub> = 0.877 × 137.32 × 345 / 1.1<br>
+            <strong>N<sub>Rd</sub> = 3777 kN</strong>
+        </div>
+        <div class="reference">
+            <strong>Referência:</strong> NBR 8800:2024 - Item 5.3.3
+        </div>
+        
+        <h3>5.4 Capacidade Flexional</h3>
+        <div class="calculation">
+            M<sub>Rd</sub> = f<sub>y</sub> × Z<sub>x</sub> / γ<sub>a</sub><br>
+            M<sub>Rd</sub> = 345 × 1635 / 1.1<br>
+            <strong>M<sub>Rd</sub> = 513 kN·m</strong>
+        </div>
+        <div class="reference">
+            <strong>Referência:</strong> NBR 8800:2024 - Item 5.4.2
+        </div>
+        
+        <h2>6. VERIFICAÇÃO</h2>
+        <div class="calculation">
+            η = √((M<sub>d</sub>/M<sub>Rd</sub>)² + (N<sub>d</sub>/N<sub>Rd</sub>)²)<br>
+            η = √((150/513)² + (1200/3777)²)<br>
+            <strong>η = 0.432 = 43.2%</strong>
+        </div>
+        
+        <div class="status approved">
+            ✓ APROVADO (η < 1.0)
+        </div>
+        
+        <h2>7. DIAGRAMAS</h2>
+        
+        <div class="diagram">
+            <img src="01_pm_interaction.png" alt="Diagrama P-M">
+            <p class="diagram-caption">Figura 1: Diagrama de Interação P-M (NBR 8800:2024)</p>
+        </div>
+        
+        <div class="diagram">
+            <img src="02_moment_curvature.png" alt="Diagrama M-κ">
+            <p class="diagram-caption">Figura 2: Diagrama Momento-Curvatura (NBR 8800:2024)</p>
+        </div>
+        
+        <h2>8. CONCLUSÃO</h2>
+        <div class="conclusion">
+            <p><strong>O pilar W310x107 ATENDE 
+            aos requisitos da NBR 8800:2024 para as solicitações especificadas.</strong></p>
+            <ul>
+                <li>Razão de utilização: η = 43.2%</li>
+                <li>Ductilidade: μ = 10.00 (high)</li>
+                <li>Adequado NBR 8800: SIM ✓</li>
+            </ul>
+        </div>
+        
+        <footer>
+            <p>Elaborado por Eng. João Silva, CREA-SP 12345</p>
+            <p>Data: 2025-10-18</p>
+            <p><em>Gerado por PyMemorial v0.6.0</em></p>
+        </footer>
+    </div>
+</body>
+</html>
