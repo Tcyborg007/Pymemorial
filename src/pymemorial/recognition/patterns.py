@@ -1,67 +1,57 @@
 """
-Padrões regex compilados para parsing de variáveis e expressões.
+Padrões regex compilados para parsing (v2.0: Whitelist Engineering + Utils Expand).
+
+Base pra text_processor MVP: ENGINEERING_VAR (M_, gamma_ zero false positives).
+Novo: find_equations, has_units. Compat 100%.
+
+Exemplo:
+    find_equations("M_d = M_k * gamma_s") → [('M_d', 'M_k * gamma_s')]
 """
+
 import re
-from typing import Pattern
+from typing import Pattern, List, Tuple, Optional
 
-# Padrão para identificadores de variáveis
-# Aceita: x, x1, fck, alpha_c, sigma_max
-VAR_NAME: Pattern = re.compile(
-    r'\b[a-zA-Z_][a-zA-Z0-9_]*\b'
-)
+# Legacy
+VAR_NAME: Pattern = re.compile(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b')
+NUMBER: Pattern = re.compile(r'[-+]?\d+\.?\d*(?:[eE][-+]?\d+)?')
+UNIT: Pattern = re.compile(r'[a-zA-Z]+(?:/[a-zA-Z]+)?(?:\*\*\d+)?')
+PLACEHOLDER: Pattern = re.compile(r'\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}')
+GREEK_LETTER: Pattern = re.compile(r'[α-ωΑ-Ω]')
+EQUATION_PATTERN: Pattern = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)')
 
-# Padrão para números (int, float, científico)
-# Aceita: 25, 3.14, 1.5e-3, -42.0
-NUMBER: Pattern = re.compile(
-    r'[-+]?\d+\.?\d*(?:[eE][-+]?\d+)?'
-)
-
-# Padrão para unidades (após número)
-# Aceita: kN, MPa, m², kg/m³
-UNIT: Pattern = re.compile(
-    r'[a-zA-Z]+(?:/[a-zA-Z]+)?(?:\*\*\d+)?'
-)
-
-# Padrão para placeholder de template {{var}}
-PLACEHOLDER: Pattern = re.compile(
-    r'\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}'
-)
-
-# Padrão para detectar símbolo grego
-GREEK_LETTER: Pattern = re.compile(
-    r'[α-ωΑ-Ω]'
-)
-
-# Padrão para equação completa (var = expr)
-EQUATION_PATTERN: Pattern = re.compile(
-    r'([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)'
-)
+# NEW: Whitelist Engineering (MVP tie-in)
+ENGINEERING_VAR: Pattern = re.compile(r'\b([MNVQPFEA]|gamma|sigma|chi|phi|mu|alpha|beta|delta|tau)_[a-z]{1,3}\b', re.I)
 
 
-def find_variables(text: str) -> list[str]:
-    """
-    Encontra todos os identificadores de variáveis no texto.
-    
-    Args:
-        text: texto para analisar
-    
-    Returns:
-        Lista de nomes de variáveis únicos
-    """
-    return list(set(VAR_NAME.findall(text)))
+def find_variables(text: str, engineering_only: bool = False) -> List[str]:
+    """Encontra variáveis (legacy or whitelist)."""
+    pattern = ENGINEERING_VAR if engineering_only else VAR_NAME
+    return list(set(pattern.findall(text)))
 
+def find_numbers(text: str) -> List[float]:
+    """Encontra números."""
+    return [float(m) for m in NUMBER.findall(text)]
 
-def find_numbers(text: str) -> list[float]:
-    """Encontra todos os números no texto."""
-    matches = NUMBER.findall(text)
-    return [float(m) for m in matches]
-
-
-def find_placeholders(text: str) -> list[str]:
-    """Encontra placeholders {{var}} no template."""
+def find_placeholders(text: str) -> List[str]:
+    """Encontra {{var}}."""
     return PLACEHOLDER.findall(text)
 
-
 def has_greek_letters(text: str) -> bool:
-    """Verifica se o texto contém letras gregas."""
+    """Verifica gregos."""
     return GREEK_LETTER.search(text) is not None
+
+# NEW: Utils Expand
+def find_equations(text: str) -> List[Tuple[str, str]]:
+    """Encontra equações (var = expr)."""
+    return [(m.group(1), m.group(2).strip()) for m in EQUATION_PATTERN.finditer(text)]
+
+def has_units(text: str) -> bool:
+    """Verifica unidades após números."""
+    return bool(re.search(r'\d\s*' + UNIT.pattern, text))
+
+
+__all__ = [
+    'find_variables', 'find_numbers', 'find_placeholders', 'has_greek_letters',
+    'find_equations', 'has_units',  # NEW
+    'ENGINEERING_VAR',  # NEW whitelist
+]

@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "title": "Memorial de Cálculo - Pilar PM-1",
+    "author": "Eng. João Silva, CREA: 12345/SP",
+    "company": "Estrutural Engenharia LTDA",
+    "code": "NBR 8800:2024",
+    "revision": "R00"
+  },
+  "sections": [
+    {
+      "number": "1",
+      "title": "Introdução"
+    },
+    {
+      "number": "1.1",
+      "title": "Objetivo"
+    },
+    {
+      "number": "1.2",
+      "title": "Escopo"
+    },
+    {
+      "number": "2",
+      "title": "Metodologia"
+    },
+    {
+      "number": "2.1",
+      "title": "Normas Aplicáveis"
+    }
+  ],
+  "figures": [
+    {
+      "number": "Figura 1",
+      "caption": "Diagrama de interação P-M do pilar PM-1"
+    }
+  ],
+  "tables": [
+    {
+      "number": "Tabela 1",
+      "caption": "Propriedades geométricas da seção"
+    }
+  ],
+  "equations": [
+    {
+      "number": "Eq. 1",
+      "latex": "N_{Rd} = \\chi \\cdot (A_s \\cdot f_{yd} + A_c \\cdot 0.85 \\cdot f_{cd})"
+    }
+  ]
+}

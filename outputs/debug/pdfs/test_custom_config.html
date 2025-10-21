@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Memorial de Cálculo - Teste PDF</title>
+
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm;
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            page-break-after: avoid;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            page-break-after: avoid;
+        }
+        h3 {
+            color: #7f8c8d;
+            page-break-after: avoid;
+        }
+        p {
+            margin: 1em 0;
+            text-align: justify;
+        }
+        .figure {
+            text-align: center;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        .figure img {
+            max-width: 100%;
+            height: auto;
+        }
+        .figure-caption {
+            font-style: italic;
+            color: #7f8c8d;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        .verification {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            page-break-inside: avoid;
+        }
+        .verification.pass {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .verification.fail {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+            page-break-inside: avoid;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+    
+</head>
+<body>
+<h1>1 Introdução</h1>
+<p>Este memorial de cálculo apresenta a verificação estrutural de um pilar <br/>        metálico submetido à flexo-compressão, conforme os critérios estabelecidos <br/>        pela norma NBR 8800:2024.<br/>        <br/>        O pilar analisado faz parte da estrutura principal do edifício comercial, <br/>        localizado no eixo A-1 da edificação.</p>
+<h1>2 Geometria e Propriedades da Seção</h1>
+<p>A seção transversal adotada é um perfil W310x52, laminado a quente.</p>
+<h1>3 Solicitações de Cálculo</h1>
+<p>As solicitações de cálculo foram obtidas a partir da análise estrutural <br/>        global do edifício, considerando as combinações últimas de serviço.</p>
+<h1>4 Verificação da Resistência</h1>
+<p>A verificação da resistência do pilar é realizada considerando o critério <br/>        de interação flexo-compressão estabelecido pela NBR 8800:2024.</p>
+
+<div class="figure">
+    <img src="file:///C:/Users/Tcyborg/MODULO%20DE%20DESENVOLVIMENTO%20DA%20BIBLIOTECA%20PYMEMORIAL/Pymemorial_v1/outputs/debug/figures/secao_transversal.png" alt="Seção transversal do perfil W310x52"/>
+    <div class="figure-caption">Figura 1: Seção transversal do perfil W310x52</div>
+</div>
+                
+<table>
+<thead><tr>
+<th>Propriedade</th>
+<th>Valor</th>
+<th>Unidade</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>P</td>
+<td>r</td>
+<td>o</td>
+<td>p</td>
+<td>r</td>
+<td>i</td>
+<td>e</td>
+<td>d</td>
+<td>a</td>
+<td>d</td>
+<td>e</td>
+</tr>
+<tr>
+<td>V</td>
+<td>a</td>
+<td>l</td>
+<td>o</td>
+<td>r</td>
+</tr>
+<tr>
+<td>U</td>
+<td>n</td>
+<td>i</td>
+<td>d</td>
+<td>a</td>
+<td>d</td>
+<td>e</td>
+</tr>
+</tbody>
+</table>
+<p class="figure-caption">Tabela 1: Propriedades geométricas do perfil W310x52</p>
+</body>
+</html>

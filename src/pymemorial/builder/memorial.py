@@ -51,6 +51,11 @@ class MemorialBuilder:
         # Controle de contexto (seção atual)
         self._current_section: Optional[Section] = None
     
+    @property
+    def current_section(self) -> Section:
+        """Retorna seção atual."""
+        return self._current_section
+   
     def add_variable(
         self,
         name: str,

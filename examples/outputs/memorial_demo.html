@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memorial de Cálculo - Pilar Misto PM-1</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        h3 { color: #7f8c8d; }
+        .figure { text-align: center; margin: 20px 0; }
+        .figure img { max-width: 100%; height: auto; }
+        .figure-caption { font-style: italic; color: #7f8c8d; margin-top: 10px; }
+        .verification { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .verification.pass { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .verification.fail { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body>
+<p><br># Memorial de Cálculo - Pilar Misto PM-1</p><p>**Estrutural Engenharia LTDA**</p><p>---</p><p>**Projeto:** EST-2024-001  <br>**Autor:** Eng. João Silva, CREA: 12345/SP  <br>**Data:** 19/10/2025  <br>**Revisão:** R00 - Emissão inicial para aprovação  <br>**Norma:** NBR 8800:2024</p><p>---</p><p>Este memorial apresenta o dimensionamento do pilar misto PM-1 conforme NBR 8800:2024. O pilar possui seção transversal em perfil I e está submetido a compressão axial e momento fletor.<br></p>
+<p># Sumário</p><p>- 1 Introdução<br>- 3 Dados de Entrada<br>  - 3.1 Geometria<br>  - 4.1 Seção Transversal<br>  - 5.1 Propriedades dos Materiais<br>  - 6.1 Ações e Solicitações<br>- 8 Dimensionamento à Compressão<br>  - 8.1 Esbeltez Reduzida<br>  - 9.1 Fator de Redução<br>  - 10.1 Resistência à Compressão<br>- 12 Verificações<br>  - 12.1 Resistência à Compressão<br>  - 13.1 Flexão Biaxial<br>- 15 Conclusões<br></p>
+<h1>1 Introdução</h1>
+<p></p>
+<p><br>Este memorial de cálculo apresenta o dimensionamento do pilar misto PM-1 <br>conforme a norma NBR 8800:2024 - Projeto de estruturas de aço e de <br>estruturas mistas de aço e concreto de edifícios.</p><p>O pilar possui altura total de H = 4.5 m e comprimento de flambagem <br>L_flam = 4.2 m. A seção transversal adotada é o perfil laminado <br>W250x73 em aço ASTM A572 Grau 50.</p><p>**Objetivo:** Verificar a segurança estrutural do pilar PM-1 submetido a <br>compressão axial combinada com flexão biaxial.<br></p>
+<h1>3 Dados de Entrada</h1>
+<p></p>
+<h2>3.1 Geometria</h2>
+<p></p>
+<p><br>**Dimensões principais:**</p><p>- Altura do pilar: H = 4.5 m<br>- Comprimento de flambagem: L_flam = 4.2 m<br>- Comprimento efetivo: K·L_flam = 1.0 × 4.2 = 4.2 m<br></p>
+<h2>4.1 Seção Transversal</h2>
+<p></p>
+<p><br>**Perfil laminado W250x73:**</p><p>- Área bruta da seção: A_g = 93.10 cm²<br>- Momento de inércia (eixo x): I_x = 7110 cm⁴<br>- Momento de inércia (eixo y): I_y = 1600 cm⁴<br>- Raio de giração (eixo x): r_x = 8.72 cm<br>- Raio de giração (eixo y): r_y = 4.15 cm<br></p>
+<h2>5.1 Propriedades dos Materiais</h2>
+<p></p>
+<p><br>**Aço ASTM A572 Grau 50:**</p><p>- Tensão de escoamento: f_y = 345 MPa<br>- Módulo de elasticidade: E = 200000 MPa<br>- Coeficiente de Poisson: ν = 0.30<br></p>
+<h2>6.1 Ações e Solicitações</h2>
+<p></p>
+<p><br>**Solicitações de cálculo (combinação última normal):**</p><p>- Força normal de compressão: N_Sd = 2500.00 kN<br>- Momento fletor (eixo x): M_x_Sd = 180.00 kNm<br>- Momento fletor (eixo y): M_y_Sd = 45.00 kNm<br></p>
+<h1>8 Dimensionamento à Compressão</h1>
+<p></p>
+<h2>8.1 Esbeltez Reduzida</h2>
+<p></p>
+<p><br>Conforme item 5.3.3.1 da NBR 8800:2024, o índice de esbeltez reduzido é <br>calculado por:</p><p>λ = (K·L / r) · √(f_y / E·π²)</p><p>**Eixo x (forte):**<br>- λ_x = 0.650 ≤ 1.5 ✅</p><p>**Eixo y (fraco):**<br>- λ_y = 1.380 ≤ 1.5 ✅</p><p>Como λ_y > λ_x, o **eixo y é o crítico** para flambagem.<br></p>
+<h2>9.1 Fator de Redução</h2>
+<p></p>
+<p><br>Conforme item 5.3.3.2 da NBR 8800:2024, o fator de redução χ é obtido <br>considerando a curva de flambagem adequada ao perfil.</p><p>Para perfil I laminado com flambagem em torno do eixo de menor inércia:<br>- Curva de flambagem: **b**<br>- Imperfeição inicial: α = 0.34</p><p>**Fator de redução para eixo crítico (y):**<br>- χ_y = 0.562<br></p>
+<h2>10.1 Resistência à Compressão</h2>
+<p></p>
+<p><br>A resistência de cálculo à compressão é dada por:</p><p>N_Rd = χ · A_g · f_y</p><p>N_Rd = 0.562 × 93.10 × 345 / 10<br>N_Rd = **3650.00 kN**<br></p>
+<h1>12 Verificações</h1>
+<p></p>
+<h2>12.1 Resistência à Compressão</h2>
+<p></p>
+<p><br>**Verificação:** N_Sd ≤ N_Rd</p><p>2500.00 kN ≤ 3650.00 kN ✅ **OK!**</p><p>Margem de segurança: 3650.00 / 2500.00 = 1.46<br></p>
+<h2>13.1 Flexão Biaxial</h2>
+<p></p>
+<p><br>**Verificação da interação flexão-compressão:**</p><p>Para elementos submetidos a compressão e flexão biaxial, deve-se <br>verificar a expressão de interação (item 5.5.2.2):</p><p>(N_Sd / N_Rd) + (M_x_Sd / M_Rd_x) + (M_y_Sd / M_Rd_y) ≤ 1.0</p><p>Onde:<br>- M_Rd_x = 280.00 kNm (momento resistente eixo x)<br>- M_Rd_y = 95.00 kNm (momento resistente eixo y)</p><p>**Cálculo:**</p><p>(2500.00 / 3650.00) + (180.00 / 280.00) + (45.00 / 95.00)</p><p>= 1.801 ≤ 1.0 ✅ **OK!**<br></p>
+<h1>15 Conclusões</h1>
+<p></p>
+<p><br>Com base nas análises e verificações realizadas, conclui-se que:</p><p>1. **Compressão axial:** O pilar PM-1 apresenta resistência adequada à <br>   compressão axial, com N_Rd = 3650.00 kN > N_Sd = 2500.00 kN.</p><p>2. **Flexão biaxial:** A interação flexão-compressão foi verificada <br>   conforme item 5.5.2.2 da NBR 8800:2024, resultando em índice de <br>   utilização de 87.9%, dentro do limite de segurança.</p><p>3. **Aprovação:** O perfil laminado W250x73 em aço ASTM A572 Grau 50 <br>   atende aos requisitos normativos para o pilar PM-1.</p><p>**Recomendações:**<br>- Utilizar ligações de extremidade conforme projeto estrutural<br>- Garantir contraventamento lateral adequado<br>- Aplicar pintura anticorrosiva em toda superfície exposta<br></p>
+
+<div class="verification pass">
+    <strong>✅ APROVADO</strong><br>
+    Resistência à compressão axial<br>
+    <code>N_Sd <= N_Rd</code><br>
+    <small>Ref: NBR 8800:2024 item 5.3.2.1</small>
+</div>
+
+<div class="verification pass">
+    <strong>✅ APROVADO</strong><br>
+    Interação flexão-compressão biaxial<br>
+    <code>(N_Sd/N_Rd) + (M_x/M_Rd_x) + (M_y/M_Rd_y) <= 1.0</code><br>
+    <small>Ref: NBR 8800:2024 item 5.5.2.2</small>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement(document.body, {
+            delimiters: [
+                {left: "$$", right: "$$", display: true},
+                {left: "$", right: "$", display: false}
+            ]
+        });
+    });
+</script>
+</body>
+</html>

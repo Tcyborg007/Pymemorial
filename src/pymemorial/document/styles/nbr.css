@@ -1,0 +1,1026 @@
+/**
+ * PyMemorial NBR Stylesheet
+ * 
+ * Professional stylesheet for Brazilian engineering calculation memorials
+ * following ABNT (Associação Brasileira de Normas Técnicas) guidelines.
+ * 
+ * Designed for:
+ * - NBR 6118:2023 (Estruturas de Concreto)
+ * - NBR 8800:2024 (Estruturas de Aço e Mistas)
+ * - NBR 14762:2023 (Estruturas de Aço Formadas a Frio)
+ * 
+ * Visual Identity:
+ * - Brazilian technical color palette (greens, blues, yellows)
+ * - Professional typography (Times New Roman + Arial hybrid)
+ * - ABNT document layout standards
+ * - A4 paper format (210mm x 297mm)
+ * - Margins: 30mm (top), 20mm (right), 20mm (bottom), 30mm (left)
+ * 
+ * Author: PyMemorial Team
+ * Date: 2025-10-20
+ * Version: 1.0.0
+ * Phase: 7.1 (Document Rendering)
+ * Status: Production-ready
+ */
+
+/* ============================================================================
+   NBR-SPECIFIC CSS CUSTOM PROPERTIES
+   ============================================================================ */
+
+:root {
+    /* === Brazilian Color Palette === */
+    /* Primary: Brazilian Green */
+    --nbr-color-primary: #008751;           /* Verde brasileiro oficial */
+    --nbr-color-primary-light: #00a854;     /* Verde claro */
+    --nbr-color-primary-dark: #006b3f;      /* Verde escuro */
+    --nbr-color-primary-50: #e6f7f0;        /* Verde muito claro (backgrounds) */
+    
+    /* Secondary: Golden Yellow (ABNT accent) */
+    --nbr-color-secondary: #fdb913;         /* Amarelo ABNT */
+    --nbr-color-secondary-light: #fed95f;   /* Amarelo claro */
+    --nbr-color-secondary-dark: #ca930f;    /* Amarelo escuro */
+    
+    /* Technical Blue (for calculations) */
+    --nbr-color-technical: #0066cc;         /* Azul técnico */
+    --nbr-color-technical-light: #3399ff;   /* Azul claro */
+    --nbr-color-technical-dark: #004d99;    /* Azul escuro */
+    --nbr-color-technical-50: #e6f2ff;      /* Azul muito claro */
+    
+    /* Status colors (adapted for Brazilian standards) */
+    --nbr-color-approved: #2d7738;          /* Verde aprovado */
+    --nbr-color-approved-bg: #d4edda;       /* Fundo verde */
+    --nbr-color-approved-border: #7bc96f;   /* Borda verde */
+    
+    --nbr-color-reproved: #c82333;          /* Vermelho reprovado */
+    --nbr-color-reproved-bg: #f8d7da;       /* Fundo vermelho */
+    --nbr-color-reproved-border: #f5c6cb;   /* Borda vermelha */
+    
+    --nbr-color-warning: #ff8c00;           /* Laranja aviso */
+    --nbr-color-warning-bg: #fff3cd;        /* Fundo laranja */
+    --nbr-color-warning-border: #ffc107;    /* Borda laranja */
+    
+    --nbr-color-info: --nbr-color-technical;
+    --nbr-color-info-bg: var(--nbr-color-technical-50);
+    --nbr-color-info-border: var(--nbr-color-technical-light);
+    
+    /* Neutral colors (ABNT document style) */
+    --nbr-color-text-primary: #212529;      /* Preto texto */
+    --nbr-color-text-secondary: #495057;    /* Cinza texto */
+    --nbr-color-text-muted: #6c757d;        /* Cinza claro */
+    
+    --nbr-color-bg-document: #ffffff;       /* Fundo branco */
+    --nbr-color-bg-highlight: #f8f9fa;      /* Cinza muito claro */
+    --nbr-color-bg-code: #2b3e50;           /* Fundo código */
+    
+    --nbr-color-border: #dee2e6;            /* Borda padrão */
+    --nbr-color-border-dark: #adb5bd;       /* Borda escura */
+    --nbr-color-border-emphasis: var(--nbr-color-primary); /* Borda destaque */
+    
+    /* === Typography (ABNT standard) === */
+    /* ABNT recommends Times New Roman or Arial */
+    --nbr-font-primary: 'Times New Roman', Times, serif;
+    --nbr-font-secondary: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+    --nbr-font-mono: 'Courier New', Courier, monospace;
+    --nbr-font-headings: var(--nbr-font-secondary); /* Arial for headings */
+    
+    /* Font sizes (ABNT NBR 14724:2011 - Trabalhos acadêmicos) */
+    --nbr-font-size-title: 14pt;        /* Título principal */
+    --nbr-font-size-h1: 14pt;           /* Seção primária */
+    --nbr-font-size-h2: 13pt;           /* Seção secundária */
+    --nbr-font-size-h3: 12pt;           /* Seção terciária */
+    --nbr-font-size-body: 12pt;         /* Corpo do texto */
+    --nbr-font-size-small: 10pt;        /* Notas de rodapé */
+    --nbr-font-size-caption: 10pt;      /* Legendas */
+    
+    /* Line heights (ABNT standard) */
+    --nbr-line-height-body: 1.5;        /* Espaçamento 1.5 (ABNT) */
+    --nbr-line-height-headings: 1.2;    /* Títulos */
+    --nbr-line-height-tight: 1.0;       /* Compacto */
+    
+    /* === Spacing (ABNT margins) === */
+    /* A4 page margins (ABNT NBR 14724) */
+    --nbr-margin-top: 30mm;
+    --nbr-margin-right: 20mm;
+    --nbr-margin-bottom: 20mm;
+    --nbr-margin-left: 30mm;
+    
+    /* Internal spacing */
+    --nbr-space-paragraph: 6pt;         /* Entre parágrafos */
+    --nbr-space-section: 24pt;          /* Antes de seções */
+    --nbr-space-subsection: 18pt;       /* Antes de subseções */
+    --nbr-space-item: 12pt;             /* Entre itens */
+    
+    /* Indentation */
+    --nbr-indent-paragraph: 1.25cm;     /* Recuo primeira linha (ABNT) */
+    --nbr-indent-quote: 4cm;            /* Recuo citações longas */
+    
+    /* === Borders === */
+    --nbr-border-width: 1pt;
+    --nbr-border-width-thick: 2pt;
+    --nbr-border-width-emphasis: 3pt;
+    --nbr-border-style: solid;
+    
+    /* === Shadows (subtle for professional look) === */
+    --nbr-shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --nbr-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.12);
+    --nbr-shadow-emphasis: 0 4px 16px rgba(0, 133, 81, 0.15);
+}
+
+/* ============================================================================
+   DOCUMENT STRUCTURE (ABNT Layout)
+   ============================================================================ */
+
+/* Override base body with ABNT font */
+.nbr-document body {
+    font-family: var(--nbr-font-primary);
+    font-size: var(--nbr-font-size-body);
+    line-height: var(--nbr-line-height-body);
+    color: var(--nbr-color-text-primary);
+    background-color: var(--nbr-color-bg-document);
+}
+
+/* Document container (A4 format) */
+.nbr-document .document {
+    background-color: var(--nbr-color-bg-document);
+    padding: var(--nbr-margin-top) var(--nbr-margin-right) var(--nbr-margin-bottom) var(--nbr-margin-left);
+    max-width: 210mm;  /* A4 width */
+    min-height: 297mm; /* A4 height */
+    margin: 0 auto;
+    box-shadow: var(--nbr-shadow-card);
+}
+
+/* Page break management */
+.nbr-document .page-break {
+    page-break-after: always;
+    margin-bottom: 0;
+}
+
+/* ============================================================================
+   TITLE PAGE (CAPA - ABNT NBR 14724)
+   ============================================================================ */
+
+.nbr-document .title-page {
+    text-align: center;
+    padding: 60mm 0 40mm 0;
+    margin-bottom: 0;
+    border-bottom: none;
+    page-break-after: always;
+}
+
+/* Company/Institution */
+.nbr-document .title-page .company {
+    font-family: var(--nbr-font-headings);
+    font-size: 14pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--nbr-color-primary);
+    margin-bottom: 80mm;
+    letter-spacing: 0.5pt;
+}
+
+/* Main title */
+.nbr-document .title-page h1 {
+    font-family: var(--nbr-font-headings);
+    font-size: var(--nbr-font-size-title);
+    font-weight: bold;
+    text-transform: uppercase;
+    border: none;
+    margin-bottom: 60mm;
+    padding: 0;
+    line-height: var(--nbr-line-height-headings);
+}
+
+/* Author and metadata at bottom */
+.nbr-document .title-page .metadata {
+    position: absolute;
+    bottom: 30mm;
+    left: 30mm;
+    right: 20mm;
+    text-align: left;
+    font-size: 12pt;
+}
+
+.nbr-document .title-page .author {
+    font-weight: bold;
+    margin-bottom: var(--nbr-space-item);
+}
+
+.nbr-document .title-page .date {
+    margin-top: var(--nbr-space-item);
+}
+
+.nbr-document .title-page .location {
+    font-size: 12pt;
+    margin-top: var(--nbr-space-section);
+}
+
+/* ============================================================================
+   DOCUMENT INFO PAGE (FOLHA DE ROSTO)
+   ============================================================================ */
+
+.nbr-document .document-info {
+    padding: var(--nbr-margin-top) 0;
+    page-break-after: always;
+}
+
+.nbr-document .document-info-title {
+    font-family: var(--nbr-font-headings);
+    font-size: 14pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: var(--nbr-space-section);
+}
+
+.nbr-document .document-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--nbr-space-item) var(--nbr-space-section);
+    margin-top: var(--nbr-space-section);
+}
+
+.nbr-document .info-label {
+    font-weight: bold;
+    color: var(--nbr-color-text-secondary);
+}
+
+.nbr-document .info-value {
+    color: var(--nbr-color-text-primary);
+}
+
+/* Revision box */
+.nbr-document .revision-box {
+    margin-top: var(--nbr-space-section);
+    padding: var(--nbr-space-item);
+    border: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border-dark);
+    background-color: var(--nbr-color-bg-highlight);
+}
+
+.nbr-document .revision-header {
+    font-weight: bold;
+    font-size: 11pt;
+    margin-bottom: var(--nbr-space-paragraph);
+    color: var(--nbr-color-primary);
+    text-transform: uppercase;
+}
+
+/* ============================================================================
+   TABLE OF CONTENTS (SUMÁRIO - ABNT NBR 6027)
+   ============================================================================ */
+
+.nbr-document .toc {
+    margin: var(--nbr-space-section) 0;
+    padding: 0;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    page-break-after: always;
+}
+
+.nbr-document .toc-title {
+    font-family: var(--nbr-font-headings);
+    font-size: 14pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: var(--nbr-space-section);
+    color: var(--nbr-color-text-primary);
+}
+
+.nbr-document .toc ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nbr-document .toc li {
+    margin-bottom: var(--nbr-space-paragraph);
+    line-height: var(--nbr-line-height-body);
+}
+
+.nbr-document .toc a {
+    display: flex;
+    justify-content: space-between;
+    padding: 0;
+    color: var(--nbr-color-text-primary);
+    text-decoration: none;
+}
+
+.nbr-document .toc a:hover {
+    background-color: var(--nbr-color-bg-highlight);
+    text-decoration: none;
+}
+
+/* TOC levels (ABNT hierarchy) */
+.nbr-document .toc-level-1 {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 12pt;
+}
+
+.nbr-document .toc-level-2 {
+    margin-left: 1.25cm;
+    font-weight: bold;
+    font-size: 12pt;
+}
+
+.nbr-document .toc-level-3 {
+    margin-left: 2.5cm;
+    font-size: 12pt;
+}
+
+.nbr-document .toc-level-4 {
+    margin-left: 3.75cm;
+    font-size: 11pt;
+}
+
+/* Leader dots (pontilhado) */
+.nbr-document .toc-entry-title::after {
+    content: "";
+    flex-grow: 1;
+    height: 0;
+    margin: 0 8px;
+    border-bottom: 1pt dotted var(--nbr-color-border);
+}
+
+.nbr-document .toc-page-number {
+    font-weight: normal;
+}
+
+/* ============================================================================
+   TYPOGRAPHY (ABNT Standards)
+   ============================================================================ */
+
+/* Headings (ABNT NBR 6024 - Numeração progressiva) */
+.nbr-document h1,
+.nbr-document h2,
+.nbr-document h3,
+.nbr-document h4,
+.nbr-document h5,
+.nbr-document h6 {
+    font-family: var(--nbr-font-headings);
+    font-weight: bold;
+    line-height: var(--nbr-line-height-headings);
+    color: var(--nbr-color-text-primary);
+    page-break-after: avoid;
+}
+
+/* Seção primária (1 TÍTULO) */
+.nbr-document h1 {
+    font-size: var(--nbr-font-size-h1);
+    text-transform: uppercase;
+    margin-top: var(--nbr-space-section);
+    margin-bottom: var(--nbr-space-subsection);
+    border-bottom: var(--nbr-border-width-thick) var(--nbr-border-style) var(--nbr-color-primary);
+    padding-bottom: var(--nbr-space-paragraph);
+}
+
+/* Seção secundária (1.1 Título) */
+.nbr-document h2 {
+    font-size: var(--nbr-font-size-h2);
+    text-transform: uppercase;
+    margin-top: var(--nbr-space-subsection);
+    margin-bottom: var(--nbr-space-item);
+    border-bottom: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border-dark);
+    padding-bottom: var(--nbr-space-paragraph);
+}
+
+/* Seção terciária (1.1.1 Título) */
+.nbr-document h3 {
+    font-size: var(--nbr-font-size-h3);
+    margin-top: var(--nbr-space-item);
+    margin-bottom: var(--nbr-space-paragraph);
+    border-bottom: none;
+}
+
+/* Seções quaternária e quinária */
+.nbr-document h4,
+.nbr-document h5,
+.nbr-document h6 {
+    font-size: var(--nbr-font-size-body);
+    margin-top: var(--nbr-space-item);
+    margin-bottom: var(--nbr-space-paragraph);
+    font-weight: bold;
+}
+
+/* Section numbers (numeração) */
+.nbr-document .section-number {
+    color: var(--nbr-color-primary);
+    margin-right: 0.5em;
+}
+
+/* Paragraphs (ABNT recommends justified text) */
+.nbr-document p {
+    text-align: justify;
+    text-indent: var(--nbr-indent-paragraph);
+    margin-bottom: var(--nbr-space-paragraph);
+    line-height: var(--nbr-line-height-body);
+}
+
+/* First paragraph after heading (no indent) */
+.nbr-document h1 + p,
+.nbr-document h2 + p,
+.nbr-document h3 + p,
+.nbr-document h4 + p,
+.nbr-document h5 + p,
+.nbr-document h6 + p {
+    text-indent: 0;
+}
+
+/* Strong emphasis */
+.nbr-document strong,
+.nbr-document b {
+    font-weight: bold;
+    color: var(--nbr-color-text-primary);
+}
+
+/* Italic emphasis */
+.nbr-document em,
+.nbr-document i {
+    font-style: italic;
+}
+
+/* Underline (used in NBR for emphasis) */
+.nbr-document u {
+    text-decoration: underline;
+}
+
+/* Inline code */
+.nbr-document code {
+    font-family: var(--nbr-font-mono);
+    font-size: 11pt;
+    background-color: var(--nbr-color-bg-highlight);
+    color: var(--nbr-color-technical);
+    padding: 1pt 3pt;
+    border: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border);
+}
+
+/* Code blocks */
+.nbr-document pre {
+    font-family: var(--nbr-font-mono);
+    font-size: 10pt;
+    background-color: var(--nbr-color-bg-code);
+    color: #f8f9fa;
+    padding: var(--nbr-space-item);
+    border-left: var(--nbr-border-width-emphasis) var(--nbr-border-style) var(--nbr-color-technical);
+    margin: var(--nbr-space-item) 0;
+    overflow-x: auto;
+    line-height: 1.4;
+}
+
+/* Blockquotes (Citações - ABNT NBR 10520) */
+.nbr-document blockquote {
+    margin: var(--nbr-space-item) var(--nbr-indent-quote);
+    padding: 0;
+    border: none;
+    font-size: 11pt;
+    line-height: var(--nbr-line-height-body);
+    text-indent: 0;
+}
+
+.nbr-document blockquote p {
+    text-indent: 0;
+}
+
+/* Citation (autor, ano) */
+.nbr-document .citation {
+    font-size: 11pt;
+    color: var(--nbr-color-text-secondary);
+}
+
+/* ============================================================================
+   LISTS (ABNT formatting)
+   ============================================================================ */
+
+.nbr-document ul,
+.nbr-document ol {
+    margin: var(--nbr-space-paragraph) 0 var(--nbr-space-item) 1.25cm;
+    padding: 0;
+}
+
+.nbr-document li {
+    margin-bottom: var(--nbr-space-paragraph);
+    text-align: justify;
+    line-height: var(--nbr-line-height-body);
+}
+
+/* Unordered lists (use dash instead of bullet) */
+.nbr-document ul {
+    list-style-type: none;
+}
+
+.nbr-document ul > li::before {
+    content: "–"; /* En dash (ABNT standard) */
+    position: absolute;
+    margin-left: -1em;
+    color: var(--nbr-color-primary);
+}
+
+/* Ordered lists (alfabética: a), b), c)) */
+.nbr-document ol {
+    list-style-type: lower-alpha;
+}
+
+.nbr-document ol > li {
+    list-style-position: outside;
+}
+
+/* Nested lists */
+.nbr-document ul ul,
+.nbr-document ol ol,
+.nbr-document ul ol,
+.nbr-document ol ul {
+    margin-top: var(--nbr-space-paragraph);
+    margin-bottom: 0;
+}
+
+/* ============================================================================
+   TABLES (ABNT NBR 14724)
+   ============================================================================ */
+
+.nbr-document table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--nbr-space-item) 0;
+    font-size: 11pt;
+    page-break-inside: avoid;
+}
+
+/* Table caption (above table - ABNT standard) */
+.nbr-document .table-caption {
+    font-size: 11pt;
+    font-weight: bold;
+    text-align: left;
+    margin-bottom: var(--nbr-space-paragraph);
+    color: var(--nbr-color-text-primary);
+}
+
+.nbr-document .table-number {
+    text-transform: uppercase;
+}
+
+/* Table header */
+.nbr-document thead {
+    background-color: var(--nbr-color-primary);
+    color: white;
+    font-weight: bold;
+}
+
+.nbr-document thead th {
+    padding: 8pt 12pt;
+    text-align: center;
+    border: var(--nbr-border-width) var(--nbr-border-style) white;
+    font-weight: bold;
+}
+
+/* Table body */
+.nbr-document tbody tr {
+    border-bottom: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border);
+}
+
+.nbr-document tbody tr:last-child {
+    border-bottom: var(--nbr-border-width-thick) var(--nbr-border-style) var(--nbr-color-text-primary);
+}
+
+.nbr-document tbody tr:nth-child(even) {
+    background-color: var(--nbr-color-bg-highlight);
+}
+
+.nbr-document td,
+.nbr-document th {
+    padding: 6pt 12pt;
+    text-align: left;
+    vertical-align: middle;
+}
+
+/* Numeric columns (right-align) */
+.nbr-document .table-numeric {
+    text-align: right;
+}
+
+/* Table source/notes (below table) */
+.nbr-document .table-source {
+    font-size: var(--nbr-font-size-small);
+    margin-top: var(--nbr-space-paragraph);
+    color: var(--nbr-color-text-secondary);
+    text-align: left;
+}
+
+/* ============================================================================
+   FIGURES (Figuras - ABNT NBR 14724)
+   ============================================================================ */
+
+.nbr-document .figure {
+    margin: var(--nbr-space-item) 0;
+    text-align: center;
+    page-break-inside: avoid;
+}
+
+.nbr-document .figure img {
+    max-width: 100%;
+    height: auto;
+    border: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border);
+    margin-bottom: var(--nbr-space-paragraph);
+}
+
+/* Figure caption (below figure - ABNT standard) */
+.nbr-document .figure-caption {
+    font-size: var(--nbr-font-size-caption);
+    text-align: center;
+    margin-top: var(--nbr-space-paragraph);
+    color: var(--nbr-color-text-primary);
+}
+
+.nbr-document .figure-number {
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* Figure source */
+.nbr-document .figure-source {
+    font-size: var(--nbr-font-size-small);
+    margin-top: var(--nbr-space-paragraph);
+    color: var(--nbr-color-text-secondary);
+}
+
+/* ============================================================================
+   EQUATIONS (Equações)
+   ============================================================================ */
+
+.nbr-document .equation-container {
+    margin: var(--nbr-space-item) 0;
+    padding: var(--nbr-space-item);
+    background-color: var(--nbr-color-technical-50);
+    border-left: var(--nbr-border-width-emphasis) var(--nbr-border-style) var(--nbr-color-technical);
+    border-radius: 0;
+    page-break-inside: avoid;
+}
+
+.nbr-document .equation {
+    font-family: var(--nbr-font-primary);
+    font-size: 13pt;
+    text-align: center;
+    margin: var(--nbr-space-paragraph) 0;
+}
+
+.nbr-document .equation-number {
+    float: right;
+    font-weight: bold;
+    color: var(--nbr-color-technical);
+    font-size: 11pt;
+}
+
+/* Equation description */
+.nbr-document .equation-description {
+    font-size: 11pt;
+    color: var(--nbr-color-text-secondary);
+    text-align: left;
+    margin-top: var(--nbr-space-paragraph);
+}
+
+/* Where clause (Onde:) */
+.nbr-document .equation-where {
+    margin-top: var(--nbr-space-item);
+    font-size: 11pt;
+}
+
+.nbr-document .equation-where-title {
+    font-weight: bold;
+    margin-bottom: var(--nbr-space-paragraph);
+}
+
+.nbr-document .equation-variables {
+    margin-left: var(--nbr-indent-paragraph);
+}
+
+.nbr-document .equation-variable {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8pt;
+    margin-bottom: 4pt;
+}
+
+.nbr-document .variable-symbol {
+    font-family: var(--nbr-font-mono);
+    font-weight: bold;
+    color: var(--nbr-color-technical);
+}
+
+.nbr-document .variable-separator {
+    text-align: center;
+}
+
+.nbr-document .variable-description {
+    text-align: left;
+}
+
+.nbr-document .variable-unit {
+    text-align: right;
+    font-size: 10pt;
+    color: var(--nbr-color-text-muted);
+}
+
+/* ============================================================================
+   VERIFICATIONS (Verificações - NBR compliance checks)
+   ============================================================================ */
+
+.nbr-document .verification {
+    margin: var(--nbr-space-item) 0;
+    padding: var(--nbr-space-item);
+    border-left: var(--nbr-border-width-emphasis) var(--nbr-border-style);
+    background-color: white;
+    page-break-inside: avoid;
+    box-shadow: var(--nbr-shadow-subtle);
+}
+
+.nbr-document .verification.pass {
+    border-left-color: var(--nbr-color-approved);
+    background-color: var(--nbr-color-approved-bg);
+}
+
+.nbr-document .verification.fail {
+    border-left-color: var(--nbr-color-reproved);
+    background-color: var(--nbr-color-reproved-bg);
+}
+
+.nbr-document .verification-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--nbr-space-paragraph);
+    font-weight: bold;
+    font-size: 11pt;
+}
+
+.nbr-document .verification-title {
+    font-weight: bold;
+    color: var(--nbr-color-text-primary);
+}
+
+/* Status badge */
+.nbr-document .verification-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4pt;
+    padding: 3pt 8pt;
+    font-size: 10pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 3pt;
+}
+
+.nbr-document .verification-status.pass {
+    background-color: var(--nbr-color-approved);
+    color: white;
+}
+
+.nbr-document .verification-status.pass::before {
+    content: "✓";
+    font-size: 12pt;
+}
+
+.nbr-document .verification-status.fail {
+    background-color: var(--nbr-color-reproved);
+    color: white;
+}
+
+.nbr-document .verification-status.fail::before {
+    content: "✗";
+    font-size: 12pt;
+}
+
+/* Verification expression */
+.nbr-document .verification-expression {
+    font-family: var(--nbr-font-mono);
+    font-size: 11pt;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 6pt 8pt;
+    margin: var(--nbr-space-paragraph) 0;
+    border: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border);
+}
+
+/* Norm reference (NBR 8800:2024, item X.X.X) */
+.nbr-document .verification-reference {
+    font-size: var(--nbr-font-size-small);
+    color: var(--nbr-color-text-secondary);
+    margin-top: var(--nbr-space-paragraph);
+    font-style: italic;
+}
+
+.nbr-document .verification-norm {
+    font-weight: bold;
+    color: var(--nbr-color-primary);
+}
+
+/* Calculated values */
+.nbr-document .verification-values {
+    margin-top: var(--nbr-space-paragraph);
+    font-size: 11pt;
+    font-family: var(--nbr-font-mono);
+    padding: 6pt 8pt;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================================================
+   REFERENCES (Referências - ABNT NBR 6023)
+   ============================================================================ */
+
+.nbr-document .references {
+    margin-top: var(--nbr-space-section);
+    page-break-before: always;
+}
+
+.nbr-document .references-title {
+    font-family: var(--nbr-font-headings);
+    font-size: var(--nbr-font-size-h1);
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: var(--nbr-space-subsection);
+    border-bottom: none;
+}
+
+.nbr-document .reference-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nbr-document .reference-item {
+    margin-bottom: var(--nbr-space-item);
+    text-align: justify;
+    text-indent: 0;
+    line-height: var(--nbr-line-height-body);
+}
+
+.nbr-document .reference-item:last-child {
+    margin-bottom: 0;
+}
+
+/* ============================================================================
+   APPENDIX/ANNEX (Apêndices/Anexos - ABNT NBR 14724)
+   ============================================================================ */
+
+.nbr-document .appendix,
+.nbr-document .annex {
+    page-break-before: always;
+}
+
+.nbr-document .appendix-title,
+.nbr-document .annex-title {
+    font-family: var(--nbr-font-headings);
+    font-size: 14pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: var(--nbr-space-subsection);
+}
+
+.nbr-document .appendix-number,
+.nbr-document .annex-number {
+    display: block;
+    margin-bottom: var(--nbr-space-paragraph);
+}
+
+/* ============================================================================
+   HEADER & FOOTER (Cabeçalho e Rodapé)
+   ============================================================================ */
+
+.nbr-document .header {
+    position: fixed;
+    top: 15mm;
+    left: var(--nbr-margin-left);
+    right: var(--nbr-margin-right);
+    padding-bottom: 6pt;
+    border-bottom: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border);
+    font-size: 10pt;
+    color: var(--nbr-color-text-muted);
+}
+
+.nbr-document .footer {
+    position: fixed;
+    bottom: 15mm;
+    left: var(--nbr-margin-left);
+    right: var(--nbr-margin-right);
+    padding-top: 6pt;
+    border-top: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border);
+    font-size: 10pt;
+    text-align: center;
+    color: var(--nbr-color-text-muted);
+}
+
+.nbr-document .page-number {
+    font-weight: bold;
+}
+
+/* ============================================================================
+   WATERMARK (Marca d'água - optional)
+   ============================================================================ */
+
+.nbr-document .watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 72pt;
+    color: rgba(0, 0, 0, 0.05);
+    font-weight: bold;
+    text-transform: uppercase;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* ============================================================================
+   PRINT STYLES (A4 - ABNT)
+   ============================================================================ */
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: var(--nbr-margin-top) var(--nbr-margin-right) var(--nbr-margin-bottom) var(--nbr-margin-left);
+        
+        @top-right {
+            content: counter(page);
+            font-size: 10pt;
+        }
+    }
+    
+    /* Reset document container for print */
+    .nbr-document .document {
+        max-width: none;
+        min-height: auto;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+    }
+    
+    /* Page breaks */
+    .nbr-document h1,
+    .nbr-document h2 {
+        page-break-after: avoid;
+    }
+    
+    .nbr-document .verification,
+    .nbr-document .equation-container,
+    .nbr-document .figure,
+    .nbr-document table {
+        page-break-inside: avoid;
+    }
+    
+    /* Remove interactive elements */
+    .nbr-document a[href]:after {
+        content: none;
+    }
+    
+    .nbr-document .no-print {
+        display: none !important;
+    }
+    
+    /* Ensure black text for print */
+    .nbr-document body {
+        color: black;
+    }
+}
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS (Screen only)
+   ============================================================================ */
+
+@media screen and (max-width: 768px) {
+    .nbr-document .document {
+        max-width: 100%;
+        padding: var(--nbr-space-item);
+        margin: 0;
+    }
+    
+    .nbr-document .title-page {
+        padding: var(--nbr-space-section) var(--nbr-space-item);
+    }
+    
+    .nbr-document table {
+        font-size: 9pt;
+    }
+    
+    .nbr-document thead {
+        display: none;
+    }
+    
+    .nbr-document tbody tr {
+        display: block;
+        margin-bottom: var(--nbr-space-item);
+        border: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border);
+    }
+    
+    .nbr-document td {
+        display: block;
+        text-align: right;
+        padding: 4pt 8pt;
+        border-bottom: var(--nbr-border-width) var(--nbr-border-style) var(--nbr-color-border);
+    }
+    
+    .nbr-document td:before {
+        content: attr(data-label) ": ";
+        float: left;
+        font-weight: bold;
+    }
+}

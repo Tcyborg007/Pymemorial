@@ -1,0 +1,334 @@
+{
+  "type": "Memorial",
+  "template": "nbr8800",
+  "metadata": {
+    "title": "Memorial de Cálculo - Pilar Misto PM-1",
+    "author": "Eng. João Silva, CREA: 12345/SP",
+    "company": "Estrutural Engenharia LTDA",
+    "code": "NBR 8800:2024",
+    "project_number": "EST-2024-001",
+    "revision": {
+      "number": "R00",
+      "date": "2025-10-19T00:00:00",
+      "description": "Emissão inicial para aprovação",
+      "author": "João Silva",
+      "approved": false
+    },
+    "date": "2025-10-19T20:26:13.022401",
+    "language": "pt-BR",
+    "keywords": [
+      "pilar misto",
+      "NBR 8800",
+      "compressão",
+      "NBR 8800:2024"
+    ],
+    "abstract": "Este memorial apresenta o dimensionamento do pilar misto PM-1 conforme NBR 8800:2024. O pilar possui seção transversal em perfil I e está submetido a compressão axial e momento fletor."
+  },
+  "sections": [
+    {
+      "id": "d51c42b8-129f-49bc-9574-c7eedb93bc3f",
+      "number": "0",
+      "title": "",
+      "level": 1,
+      "content_preview": "\n# Memorial de Cálculo - Pilar Misto PM-1\n\n**Estrutural Engenharia LTDA**\n\n---\n\n**Projeto:** EST-202..."
+    },
+    {
+      "id": "d75a9605-fcea-46b3-91f5-1d5b8f1a9c24",
+      "number": "0.1",
+      "title": "",
+      "level": 1,
+      "content_preview": "# Sumário\n\n- 1 Introdução\n- 3 Dados de Entrada\n  - 3.1 Geometria\n  - 4.1 Seção Transversal\n  - 5.1 P..."
+    },
+    {
+      "id": "e7590d77-2c6e-4164-8f1a-c6ea4c223aaf",
+      "number": "1",
+      "title": "Introdução",
+      "level": 1,
+      "content_preview": ""
+    },
+    {
+      "id": "0792adeb-baed-452b-bf6f-a21620288958",
+      "number": "2",
+      "title": "",
+      "level": 1,
+      "content_preview": "\nEste memorial de cálculo apresenta o dimensionamento do pilar misto PM-1 \nconforme a norma NBR 8800..."
+    },
+    {
+      "id": "6d5cf9de-605f-46e2-841a-3efbec9968f9",
+      "number": "3",
+      "title": "Dados de Entrada",
+      "level": 1,
+      "content_preview": ""
+    },
+    {
+      "id": "c24c9213-d234-41fa-bb0e-0842050cf04f",
+      "number": "3.1",
+      "title": "Geometria",
+      "level": 2,
+      "content_preview": ""
+    },
+    {
+      "id": "732756a3-a600-4d65-b1d1-ca43d349b356",
+      "number": "4",
+      "title": "",
+      "level": 1,
+      "content_preview": "\n**Dimensões principais:**\n\n- Altura do pilar: H = 4.5 m\n- Comprimento de flambagem: L_flam = 4.2 m\n..."
+    },
+    {
+      "id": "a032174d-89d3-4d1d-97a5-f64fe60a97c7",
+      "number": "4.1",
+      "title": "Seção Transversal",
+      "level": 2,
+      "content_preview": ""
+    },
+    {
+      "id": "2fb7ebba-13b7-4686-8be0-5e08761f841d",
+      "number": "5",
+      "title": "",
+      "level": 1,
+      "content_preview": "\n**Perfil laminado W250x73:**\n\n- Área bruta da seção: A_g = 93.10 cm²\n- Momento de inércia (eixo x):..."
+    },
+    {
+      "id": "41455fbc-07c8-4658-bceb-2545079ff4e7",
+      "number": "5.1",
+      "title": "Propriedades dos Materiais",
+      "level": 2,
+      "content_preview": ""
+    },
+    {
+      "id": "7615a226-74d3-497e-825d-83594e7175ca",
+      "number": "6",
+      "title": "",
+      "level": 1,
+      "content_preview": "\n**Aço ASTM A572 Grau 50:**\n\n- Tensão de escoamento: f_y = 345 MPa\n- Módulo de elasticidade: E = 200..."
+    },
+    {
+      "id": "7f457b63-8b99-4c79-82f6-5c52dcb64114",
+      "number": "6.1",
+      "title": "Ações e Solicitações",
+      "level": 2,
+      "content_preview": ""
+    },
+    {
+      "id": "88b7ec86-fb12-46e6-b4ac-8d671a07dd29",
+      "number": "7",
+      "title": "",
+      "level": 1,
+      "content_preview": "\n**Solicitações de cálculo (combinação última normal):**\n\n- Força normal de compressão: N_Sd = 2500...."
+    },
+    {
+      "id": "fb0e332c-38e8-4529-9348-64a046b535ac",
+      "number": "8",
+      "title": "Dimensionamento à Compressão",
+      "level": 1,
+      "content_preview": ""
+    },
+    {
+      "id": "0bac18e9-d7d7-4bfd-a193-37d18881fd44",
+      "number": "8.1",
+      "title": "Esbeltez Reduzida",
+      "level": 2,
+      "content_preview": ""
+    },
+    {
+      "id": "3ade5df2-0e9e-4c41-ad2f-3b9a20167978",
+      "number": "9",
+      "title": "",
+      "level": 1,
+      "content_preview": "\nConforme item 5.3.3.1 da NBR 8800:2024, o índice de esbeltez reduzido é \ncalculado por:\n\nλ = (K·L /..."
+    },
+    {
+      "id": "bd22cf52-9149-4b79-b32f-fc6e48ae58e8",
+      "number": "9.1",
+      "title": "Fator de Redução",
+      "level": 2,
+      "content_preview": ""
+    },
+    {
+      "id": "38745682-b812-4aab-ab7c-522201f134ce",
+      "number": "10",
+      "title": "",
+      "level": 1,
+      "content_preview": "\nConforme item 5.3.3.2 da NBR 8800:2024, o fator de redução χ é obtido \nconsiderando a curva de flam..."
+    },
+    {
+      "id": "79944853-638a-40c5-80cc-363c17299219",
+      "number": "10.1",
+      "title": "Resistência à Compressão",
+      "level": 2,
+      "content_preview": ""
+    },
+    {
+      "id": "6b90a8b7-1f46-4d3f-8883-021960f1b37b",
+      "number": "11",
+      "title": "",
+      "level": 1,
+      "content_preview": "\nA resistência de cálculo à compressão é dada por:\n\nN_Rd = χ · A_g · f_y\n\nN_Rd = 0.562 × 93.10 × 345..."
+    },
+    {
+      "id": "c54cdaff-054b-40a2-b146-5c1505ef0ecc",
+      "number": "12",
+      "title": "Verificações",
+      "level": 1,
+      "content_preview": ""
+    },
+    {
+      "id": "c638586f-c071-46f5-bd08-67be870fda7f",
+      "number": "12.1",
+      "title": "Resistência à Compressão",
+      "level": 2,
+      "content_preview": ""
+    },
+    {
+      "id": "db6575a3-9194-4799-aca1-14968af2f655",
+      "number": "13",
+      "title": "",
+      "level": 1,
+      "content_preview": "\n**Verificação:** N_Sd ≤ N_Rd\n\n2500.00 kN ≤ 3650.00 kN ✅ **OK!**\n\nMargem de segurança: 3650.00 / 250..."
+    },
+    {
+      "id": "202b46c4-3480-4f4e-bd55-978cf7b966af",
+      "number": "13.1",
+      "title": "Flexão Biaxial",
+      "level": 2,
+      "content_preview": ""
+    },
+    {
+      "id": "b1a80086-5471-4724-86dd-ef91cdcebbf0",
+      "number": "14",
+      "title": "",
+      "level": 1,
+      "content_preview": "\n**Verificação da interação flexão-compressão:**\n\nPara elementos submetidos a compressão e flexão bi..."
+    },
+    {
+      "id": "15c78f11-2122-41d9-8e85-897fdae5a393",
+      "number": "15",
+      "title": "Conclusões",
+      "level": 1,
+      "content_preview": ""
+    },
+    {
+      "id": "b91e514d-f457-45c9-b884-d871e94a3e16",
+      "number": "16",
+      "title": "",
+      "level": 1,
+      "content_preview": "\nCom base nas análises e verificações realizadas, conclui-se que:\n\n1. **Compressão axial:** O pilar ..."
+    }
+  ],
+  "figures": [],
+  "tables": [],
+  "equations": [],
+  "verifications": [
+    {
+      "id": "81c6a8d1-3c14-4d35-9280-9469f44b41b1",
+      "expression": "N_Sd <= N_Rd",
+      "passed": true,
+      "description": "Resistência à compressão axial",
+      "norm": "NBR 8800:2024",
+      "item": "5.3.2.1"
+    },
+    {
+      "id": "c76d6dbe-297b-41ae-bd3e-3001a16b9b5d",
+      "expression": "(N_Sd/N_Rd) + (M_x/M_Rd_x) + (M_y/M_Rd_y) <= 1.0",
+      "passed": true,
+      "description": "Interação flexão-compressão biaxial",
+      "norm": "NBR 8800:2024",
+      "item": "5.5.2.2"
+    }
+  ],
+  "toc": [
+    {
+      "number": "1",
+      "title": "Introdução",
+      "level": 1,
+      "id": "e7590d77-2c6e-4164-8f1a-c6ea4c223aaf"
+    },
+    {
+      "number": "3",
+      "title": "Dados de Entrada",
+      "level": 1,
+      "id": "6d5cf9de-605f-46e2-841a-3efbec9968f9"
+    },
+    {
+      "number": "3.1",
+      "title": "Geometria",
+      "level": 2,
+      "id": "c24c9213-d234-41fa-bb0e-0842050cf04f"
+    },
+    {
+      "number": "4.1",
+      "title": "Seção Transversal",
+      "level": 2,
+      "id": "a032174d-89d3-4d1d-97a5-f64fe60a97c7"
+    },
+    {
+      "number": "5.1",
+      "title": "Propriedades dos Materiais",
+      "level": 2,
+      "id": "41455fbc-07c8-4658-bceb-2545079ff4e7"
+    },
+    {
+      "number": "6.1",
+      "title": "Ações e Solicitações",
+      "level": 2,
+      "id": "7f457b63-8b99-4c79-82f6-5c52dcb64114"
+    },
+    {
+      "number": "8",
+      "title": "Dimensionamento à Compressão",
+      "level": 1,
+      "id": "fb0e332c-38e8-4529-9348-64a046b535ac"
+    },
+    {
+      "number": "8.1",
+      "title": "Esbeltez Reduzida",
+      "level": 2,
+      "id": "0bac18e9-d7d7-4bfd-a193-37d18881fd44"
+    },
+    {
+      "number": "9.1",
+      "title": "Fator de Redução",
+      "level": 2,
+      "id": "bd22cf52-9149-4b79-b32f-fc6e48ae58e8"
+    },
+    {
+      "number": "10.1",
+      "title": "Resistência à Compressão",
+      "level": 2,
+      "id": "79944853-638a-40c5-80cc-363c17299219"
+    },
+    {
+      "number": "12",
+      "title": "Verificações",
+      "level": 1,
+      "id": "c54cdaff-054b-40a2-b146-5c1505ef0ecc"
+    },
+    {
+      "number": "12.1",
+      "title": "Resistência à Compressão",
+      "level": 2,
+      "id": "c638586f-c071-46f5-bd08-67be870fda7f"
+    },
+    {
+      "number": "13.1",
+      "title": "Flexão Biaxial",
+      "level": 2,
+      "id": "202b46c4-3480-4f4e-bd55-978cf7b966af"
+    },
+    {
+      "number": "15",
+      "title": "Conclusões",
+      "level": 1,
+      "id": "15c78f11-2122-41d9-8e85-897fdae5a393"
+    }
+  ],
+  "statistics": {
+    "sections": 27,
+    "figures": 0,
+    "tables": 0,
+    "equations": 0,
+    "verifications": 2,
+    "passed_verifications": 2,
+    "failed_verifications": 0
+  }
+}
