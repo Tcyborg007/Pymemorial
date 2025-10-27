@@ -1,0 +1,149 @@
+{
+  "total_tests": 7,
+  "passed": 4,
+  "failed": 2,
+  "warnings": 0,
+  "skipped": 1,
+  "success_rate": 57.14,
+  "tests": [
+    {
+      "name": "LaTeX Block Count",
+      "category": "Estrutura",
+      "status": "✅ PASSOU",
+      "message": "Encontrados 4 blocos (mínimo: 2)",
+      "details": {
+        "count": 4,
+        "min_expected": 2
+      },
+      "timestamp": "2025-10-23T04:08:22.501012"
+    },
+    {
+      "name": "Markdown Table Present",
+      "category": "Estrutura",
+      "status": "✅ PASSOU",
+      "message": "Encontrada(s) 1 tabela(s)",
+      "details": {
+        "count": 1
+      },
+      "timestamp": "2025-10-23T04:08:22.501012"
+    },
+    {
+      "name": "Symbolic Purity",
+      "category": "Contaminação",
+      "status": "❌ FALHOU",
+      "message": "Contaminação detectada: 1 número(s) indevido(s)",
+      "details": {
+        "expected_symbols": [
+          "E",
+          "I",
+          "Le"
+        ],
+        "found_symbols": [
+          "E",
+          "I",
+          "Le"
+        ],
+        "forbidden_numbers": [
+          "21000",
+          "80000",
+          "500"
+        ],
+        "found_forbidden": [
+          "500"
+        ],
+        "block_length": 405,
+        "block_preview": "\\left[\\begin{matrix}\\frac{12 E I}{Le^{3}} & \\frac{6 E I}{Le^{2}} & - \\frac{12 E I}{Le^{3}} & \\frac{6 E I}{Le^{2}}\\\\\\frac{6 E I}{Le^{2}} & \\frac{4 E I}500.0 & - \\frac{6 E I}{Le^{2}} & \\frac{2 E I}500.0"
+      },
+      "timestamp": "2025-10-23T04:08:22.501012"
+    },
+    {
+      "name": "Intermediate Structure",
+      "category": "Contaminação",
+      "status": "✅ PASSOU",
+      "message": "Estrutura preservada corretamente",
+      "details": {
+        "expected_numbers": [
+          "21000.0",
+          "80000.0",
+          "500.0"
+        ],
+        "found_numbers": [
+          "21000.0",
+          "80000.0",
+          "500.0"
+        ],
+        "math_operators_found": [
+          "\\cdot",
+          "^{-1}",
+          "^{2}",
+          "^{3}",
+          "\\left",
+          "\\right"
+        ],
+        "unwanted_symbols": [],
+        "block_preview": "\\left[\\begin{matrix}12 \\cdot 21000.0 \\cdot 80000.0 \\left(500.0^{3}\\right)^{-1} & 6 \\cdot 21000.0 \\cdot 80000.0 \\left(500.0^{2}\\right)^{-1} & - 12 \\cdot 21000.0 \\cdot 80000.0 \\left(500.0^{3}\\right)^{-1"
+      },
+      "timestamp": "2025-10-23T04:08:22.501012"
+    },
+    {
+      "name": "Numeric Values",
+      "category": "Precisão",
+      "status": "❌ FALHOU",
+      "message": "Apenas 1 valores encontrados (mínimo: 3)",
+      "details": {
+        "expected_values": [
+          "161.3",
+          "161.28",
+          "4.032e+04",
+          "40320",
+          "1.344e+07",
+          "13440000"
+        ],
+        "found_values": [
+          "161.3"
+        ],
+        "min_required": 3
+      },
+      "timestamp": "2025-10-23T04:08:22.501012"
+    },
+    {
+      "name": "Singular Matrix Error",
+      "category": "Erro Handling",
+      "status": "✅ PASSOU",
+      "message": "Erro capturado corretamente (4 padrões encontrados)",
+      "details": {
+        "error_patterns_checked": [
+          "singular",
+          "det.*=.*0",
+          "não é possível calcular",
+          "inversa"
+        ],
+        "patterns_found": [
+          "singular",
+          "det.*=.*0",
+          "não é possível calcular",
+          "inversa"
+        ],
+        "error_messages": [
+          "**ERRO OPERAÇÃO:** Ke_inv: Matriz Ke é singular (det = 0.00e+00). Não é possível calcular a inversa.\n\n"
+        ]
+      },
+      "timestamp": "2025-10-23T04:08:22.501012"
+    },
+    {
+      "name": "Baseline Comparison",
+      "category": "Regressão",
+      "status": "⏭️ PULADO",
+      "message": "Baseline não fornecido",
+      "details": {},
+      "timestamp": "2025-10-23T04:08:22.501012"
+    }
+  ],
+  "metadata": {
+    "latex_blocks_count": 4,
+    "markdown_tables_count": 1,
+    "error_messages_count": 1,
+    "output_size_bytes": 2530
+  },
+  "timestamp": "2025-10-23T04:08:22.501012"
+}

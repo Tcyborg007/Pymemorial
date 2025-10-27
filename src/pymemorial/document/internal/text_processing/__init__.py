@@ -1,19 +1,22 @@
-# src/pymemorial/__init__.py
+# src/pymemorial/document/internal/text_processing/__init__.py
 """
-PyMemorial 2.0 - Memoriais de cálculo estrutural profissionais
+Text Processing Module - Internal
+
+Bridge entre Recognition e Document.
 """
 
-# Estratégia robusta de versionamento
-try:
-    from importlib.metadata import version as _get_version, PackageNotFoundError
-    try:
-        __version__ = _get_version("pymemorial")
-    except PackageNotFoundError:
-        # Fallback para desenvolvimento (src layout sem instalação editable)
-        from .__version__ import __version__
-except Exception:
-    # Fallback defensivo final
-    from .__version__ import __version__
+from .integration import (
+    TextProcessingBridge,
+    DocumentTextProcessor,
+    create_text_bridge,
+    RECOGNITION_AVAILABLE,
+    TEXT_UTILS_AVAILABLE,
+)
 
-# Expor apenas o necessário
-__all__ = ["__version__"]
+__all__ = [
+    'TextProcessingBridge',
+    'DocumentTextProcessor', 
+    'create_text_bridge',
+    'RECOGNITION_AVAILABLE',
+    'TEXT_UTILS_AVAILABLE',
+]

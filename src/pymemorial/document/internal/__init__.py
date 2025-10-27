@@ -1,19 +1,19 @@
-# src/pymemorial/__init__.py
+# src/pymemorial/document/internal/__init__.py
 """
-PyMemorial 2.0 - Memoriais de cálculo estrutural profissionais
+Internal utilities for PyMemorial document module.
+
+Author: PyMemorial Team
+Date: 2025-10-21
 """
 
-# Estratégia robusta de versionamento
-try:
-    from importlib.metadata import version as _get_version, PackageNotFoundError
-    try:
-        __version__ = _get_version("pymemorial")
-    except PackageNotFoundError:
-        # Fallback para desenvolvimento (src layout sem instalação editable)
-        from .__version__ import __version__
-except Exception:
-    # Fallback defensivo final
-    from .__version__ import __version__
+from .text_processing.text_utils import (
+    TemplateProcessor,
+    process_template,
+    extract_variables,
+)
 
-# Expor apenas o necessário
-__all__ = ["__version__"]
+__all__ = [
+    'TemplateProcessor',
+    'process_template',
+    'extract_variables',
+]

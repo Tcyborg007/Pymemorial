@@ -1,113 +1,148 @@
 # src/pymemorial/recognition/__init__.py
 """
-API pública do recognition (v2.0: MVP simplificado).
+Recognition Module - API Pública v3.0
 
-Exports legacy + novo (SmartTextEngine, get_engine). 
-Bundle factory para quick setup.
-Compatibilidade 100%; lazy imports para evitar erros.
+Combina funcionalidades v2.0 (SmartTextEngine) + v3.0 (SmartTextProcessor).
 
-Exemplo Bundle:
-    bundle = get_recognition_bundle(nlp=False)
-    processed = bundle['processor'].process_text(text, context)
-    
-Exemplo Direto:
-    from pymemorial.recognition import SmartTextEngine
-    engine = SmartTextEngine()
-    result = engine.process_text("M_k = 150 kN", {'M_k': 150})
+Author: PyMemorial Team
+Date: October 2025
+Version: 3.0.0
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
+_logger = logging.getLogger(__name__)
 
 # ============================================================================
-# GREEK SYMBOLS (com fallback robusto)
+# GREEK SYMBOLS
 # ============================================================================
 try:
     from .greek import GreekSymbols, ASCII_TO_GREEK
-    # FIX: GREEK_TO_ASCII pode não existir em greek.py
     try:
         from .greek import GREEK_TO_ASCII
     except ImportError:
-        # Cria reverso se não existir
         GREEK_TO_ASCII = {v: k for k, v in ASCII_TO_GREEK.items()} if ASCII_TO_GREEK else {}
 except ImportError as e:
-    logging.warning(f"Greek import falhou: {e}. Usando fallback.")
-    # Stub simples
+    _logger.warning(f"Greek import failed: {e}")
     class GreekSymbols:
         @staticmethod
         def to_unicode(text: str) -> str:
             return text
+        @staticmethod
+        def to_latex(text: str) -> str:
+            return text
     ASCII_TO_GREEK = {}
     GREEK_TO_ASCII = {}
 
-
 # ============================================================================
-# PARSER (com fallback)
+# PARSER
 # ============================================================================
 try:
     from .parser import VariableParser, ParsedVariable
 except ImportError as e:
-    logging.warning(f"Parser import falhou: {e}. Parser não disponível.")
+    _logger.warning(f"Parser import failed: {e}")
     VariableParser = None
     ParsedVariable = None
 
+# ============================================================================
+# TEXT PROCESSOR v2.0 + v3.0
+# ============================================================================
+try:
+    from .text_processor import (
+        TextProcessor,
+        SmartTextEngine,
+        DetectedVariable,
+        get_engine,
+        SmartTextProcessor,
+        VariableRegistry,
+        EquationParser,
+        LaTeXRenderer,
+        ProcessingOptions,
+        DocumentType,
+        RenderMode,
+        CitationStyle,
+        VariableContext,
+        EquationContext,
+    )
+    TEXT_PROCESSOR_V3_AVAILABLE = True
+except ImportError as e:
+    _logger.warning(f"Text processor v3.0 import failed: {e}")
+    try:
+        from .text_processor import (
+            TextProcessor,
+            SmartTextEngine,
+            DetectedVariable,
+            get_engine,
+        )
+        SmartTextProcessor = None
+        VariableRegistry = None
+        EquationParser = None
+        LaTeXRenderer = None
+        ProcessingOptions = None
+        DocumentType = None
+        RenderMode = None
+        CitationStyle = None
+        VariableContext = None
+        EquationContext = None
+        TEXT_PROCESSOR_V3_AVAILABLE = False
+    except ImportError as e2:
+        _logger.error(f"Critical: {e2}")
+        raise
 
 # ============================================================================
-# TEXT PROCESSOR (MVP v2.0) - IMPORTS CORRETOS
-# ============================================================================
-from .text_processor import (
-    TextProcessor,        # Legacy {{var}}
-    SmartTextEngine,      # MVP natural (novo)
-    DetectedVariable,     # FIX: Nome correto
-    get_engine,           # Factory singleton
-)
-
-
-# ============================================================================
-# PATTERNS UTILS (com fallback)
+# PATTERNS
 # ============================================================================
 try:
     from .patterns import (
+        # Patterns v2.0
+        PLACEHOLDER,
+        VARNAME,
+        GREEKLETTER,
+        NUMBER,
+        # Patterns v3.0
+        VALUEDISPLAYPATTERN,
+        FORMULADISPLAYPATTERN,
+        EQUATIONBLOCKPATTERN,
+        # Functions
         find_variables,
         find_numbers,
         find_placeholders,
         has_greek_letters,
     )
+    PATTERNS_V3_AVAILABLE = True
 except ImportError as e:
-    logging.warning(f"Patterns import falhou: {e}. Usando fallback regex.")
+    _logger.warning(f"Patterns import failed: {e}")
     import re
-    # Fallbacks simples
     find_variables = lambda t: re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', t)
-    find_numbers = lambda t: [float(m) for m in re.findall(r'[-+]?\d+\.?\d*(?:[eE][-+]?\d+)?', t)]
+    find_numbers = lambda t: [float(m) for m in re.findall(r'[-+]?\d+\.?\d*', t)]
     find_placeholders = lambda t: re.findall(r'\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}', t)
     has_greek_letters = lambda t: bool(re.search(r'[\u0370-\u03FF]', t))
-
+    PATTERNS_V3_AVAILABLE = False
 
 # ============================================================================
-# BUNDLE FACTORY (inovador: one-stop setup)
+# NLP ENGINEERING (Adicionado para correção)
 # ============================================================================
-def get_recognition_bundle(nlp: bool = False, legacy: bool = False) -> Dict[str, Any]:
-    """
-    Bundle completo de ferramentas de reconhecimento.
-    
-    Args:
-        nlp: Habilita NLP (não implementado na versão MVP, ignorado)
-        legacy: Se True, usa TextProcessor (compatibilidade v1.0)
-    
-    Returns:
-        Dict com: processor, parser, greek, patterns
-    
-    Example:
-        >>> bundle = get_recognition_bundle()
-        >>> engine = bundle['processor']
-        >>> result = engine.process_text("M_k = 150 kN", {'M_k': 150})
-    """
-    # Escolhe processor (legacy ou novo)
+try:
+    from .nlp_engineering import EngineeringNLP, DetectedVar
+    NLP_ENGINEERING_AVAILABLE = True
+except ImportError as e:
+    _logger.warning(f"NLP Engineering import failed: {e}")
+    EngineeringNLP = None
+    DetectedVar = None
+    NLP_ENGINEERING_AVAILABLE = False
+
+# ============================================================================
+# BUNDLE FACTORY
+# ============================================================================
+def get_recognition_bundle(nlp: bool = False, legacy: bool = False, version: str = '3.0') -> Dict[str, Any]:
+    """Factory para criar bundle de reconhecimento."""
     if legacy:
         processor = TextProcessor()
+    elif version == '3.0' and TEXT_PROCESSOR_V3_AVAILABLE and SmartTextProcessor:
+        processor = SmartTextProcessor()
     else:
-        processor = get_engine(auto_detect=True)  # FIX: Parâmetro correto
+        processor = get_engine(auto_detect=True)
     
     return {
         'processor': processor,
@@ -119,32 +154,64 @@ def get_recognition_bundle(nlp: bool = False, legacy: bool = False) -> Dict[str,
             'find_numbers': find_numbers,
             'has_greek_letters': has_greek_letters,
         },
+        'nlp_engineering': EngineeringNLP if EngineeringNLP else None,
+        'version': version,
+        'v3_available': TEXT_PROCESSOR_V3_AVAILABLE,
+        'nlp_available': NLP_ENGINEERING_AVAILABLE,
     }
 
+def create_smart_processor(document_type: Optional[str] = 'memorial', render_mode: Optional[str] = 'full') -> Optional['SmartTextProcessor']:
+    """Factory para SmartTextProcessor v3.0."""
+    if not TEXT_PROCESSOR_V3_AVAILABLE or not SmartTextProcessor:
+        _logger.warning("SmartTextProcessor v3.0 not available")
+        return None
+    
+    try:
+        options = ProcessingOptions(
+            document_type=DocumentType[document_type.upper()],
+            render_mode=RenderMode[render_mode.upper()],
+        )
+        return SmartTextProcessor(options=options)
+    except Exception as e:
+        _logger.error(f"Failed to create SmartTextProcessor: {e}")
+        return None
 
 # ============================================================================
-# EXPORTS
+# EXPORTS (FIX COMPLETO - ESTAVA INCOMPLETO!)
 # ============================================================================
 __all__ = [
-    # Legacy (v1.0)
-    "GreekSymbols",
-    "VariableParser",
-    "ParsedVariable",
+    # v1.0
     "TextProcessor",
-    "GREEK_TO_ASCII",
-    "ASCII_TO_GREEK",
+    # v2.0
+    "SmartTextEngine",
+    "DetectedVariable",
+    "get_engine",
+    "get_recognition_bundle",
+    # v3.0
+    "SmartTextProcessor",
+    "VariableRegistry",
+    "EquationParser",
+    "LaTeXRenderer",
+    "ProcessingOptions",
+    "DocumentType",
+    "RenderMode",
+    "CitationStyle",
+    "VariableContext",
+    "EquationContext",
+    "create_smart_processor",
+    # Utils
+    "GreekSymbols",
     "find_variables",
     "find_numbers",
     "find_placeholders",
     "has_greek_letters",
-    
-    # MVP (v2.0) - FIX: Somente o que existe
-    "SmartTextEngine",
-    "DetectedVariable",  # FIX: Nome correto
-    "get_engine",
-    
-    # Novo
-    "get_recognition_bundle",
+    # NLP Engineering (Adicionado para correção)
+    "EngineeringNLP",
+    "DetectedVar",
+    # Flags
+    "TEXT_PROCESSOR_V3_AVAILABLE",
+    "PATTERNS_V3_AVAILABLE",
+    "NLP_ENGINEERING_AVAILABLE",
 ]
 
-__version__ = '2.0.0'
+__version__ = '3.0.0'

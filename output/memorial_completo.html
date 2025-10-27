@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Memorial de Cálculo - Dimensionamento de Viga V1</title>
+
+    <style>
+        @page { size: A4; margin: 2.5cm; }
+        body { 
+            font-family: 'Times New Roman', serif; 
+            font-size: 12pt; 
+            line-height: 1.6; 
+            color: #333; 
+        }
+        .memorial-container {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20mm;
+            background: white;
+        }
+        .section-title {
+            color: #003366;
+            border-bottom: 2px solid #003366;
+            padding-bottom: 5pt;
+            margin-top: 20pt;
+            margin-bottom: 15pt;
+        }
+        h1.section-title { font-size: 18pt; }
+        h2.section-title { font-size: 16pt; border-bottom: 1px solid #003366; }
+        h3.section-title { font-size: 14pt; border-bottom: 1px solid #ccc; }
+        .paragraph {
+            text-align: justify;
+            margin: 10pt 0;
+        }
+        .equation {
+            display: block;
+            text-align: center;
+            margin: 20pt 0;
+            padding: 15pt;
+            background: #f5f5f5;
+            border-left: 4px solid #003366;
+        }
+        .list {
+            margin: 10pt 0 10pt 20pt;
+        }
+        .figure {
+            text-align: center;
+            margin: 20pt 0;
+        }
+        .table-container {
+            margin: 20pt 0;
+        }
+        table.table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.table th,
+        table.table td {
+            border: 1px solid #ccc;
+            padding: 8pt;
+            text-align: left;
+        }
+        table.table th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+        strong { font-weight: bold; color: #000; }
+    </style>
+    
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="memorial-container">
+<section class="level-1" id="c43e516e-77ee-4eb4-bb86-43e6cfc6f493">
+</section>
+<section class="level-1" id="776ed03f-0eab-48de-8d21-d11fde084aa9">
+<p class="paragraph">
+# Memorial de Cálculo - Dimensionamento de Viga V1
+
+<em>*</em>*
+
+---
+
+<strong>Projeto:</strong> N/A  
+<strong>Autor:</strong> Eng. João Silva, CREA/SP 123456  
+<strong>Data:</strong> 2025-10-21  
+<strong>Revisão:</strong> 1.0  
+<strong>Norma:</strong> NBR 6118:2023
+
+---
+</p>
+</section>
+<section class="level-1" id="d85edd70-0c1e-4ad5-bbae-e6cb89b5e84c">
+<h1 class="section-title">1 Objetivo</h1>
+<p class="paragraph">
+Este memorial apresenta o dimensionamento à flexão simples de viga em concreto armado 
+conforme a <strong>NBR 6118:2023 - Projeto de estruturas de concreto</strong>.
+
+O cálculo determina a área de aço necessária para resistir aos esforços de flexão, 
+considerando os estados limites últimos e de serviço.
+        </p>
+</section>
+<section class="level-1" id="3c6ff720-b98b-4f38-b30c-0599f0709434">
+<h1 class="section-title">2 Dados de Entrada</h1>
+</section>
+<section class="level-2" id="a5631e32-7d42-4190-a7d6-6710fb7800b4">
+<h2 class="section-title">2.1 Geometria da Viga</h2>
+<p class="paragraph">
+| Parâmetro | Símbolo | Valor | Unidade |
+|-----------|---------|-------|---------|
+| Largura | b | 20 | cm |
+| Altura total | h | 50 | cm |
+| Altura útil | d | 45 | cm |
+| Cobrimento | c | 3.0 | cm |
+| Vão | L | 6.0 | m |
+        </p>
+</section>
+<section class="level-2" id="55d955b1-3c41-4a6f-b287-67371c256a4c">
+<h2 class="section-title">2.2 Materiais</h2>
+<p class="paragraph">
+<strong>Concreto:</strong>
+- Classe: C30
+- f_ck = 30 MPa (resistência característica à compressão)
+- γ_c = 1.4 (coeficiente de ponderação NBR 6118, item 12.3.3)
+
+<strong>Aço:</strong>
+- Categoria: CA-50
+- f_yk = 500 MPa (resistência característica ao escoamento)
+- γ_s = 1.15 (coeficiente de ponderação NBR 6118, item 12.4.1)
+        </p>
+</section>
+<section class="level-2" id="8635182d-c8c0-4daf-bb75-e31319506664">
+<h2 class="section-title">2.3 Carregamentos</h2>
+<p class="paragraph">
+<strong>Ações Permanentes (g):</strong>
+- Peso próprio: 2.5 kN/m
+- Revestimento: 1.0 kN/m
+- Total: g = 3.5 kN/m
+
+<strong>Ações Variáveis (q):</strong>
+- Sobrecarga de utilização: q = 3.0 kN/m
+- γ_f = 1.4 (combinação normal, NBR 6118, item 11.7.1)
+
+<strong>Momento Característico:</strong>
+- M_k = (g + q) × L² / 8 = (3.5 + 3.0) × 6² / 8 = <strong>29.25 kN.m</strong>
+
+<strong>Observação:</strong> Este valor será majorado pelo coeficiente γ_f para obtenção do momento de cálculo.
+        </p>
+</section>
+<section class="level-1" id="18bf60f3-cc3c-42a8-ade4-40a3366b644c">
+<h1 class="section-title">3 Momento de Cálculo (M_d)</h1>
+<p class="paragraph">
+O momento de cálculo é obtido majorando o momento característico pelo coeficiente de 
+ponderação das ações conforme NBR 6118:2023, item 11.7.1:
+        </p>
+<p class="paragraph">
+<strong>Cálculo:</strong>
+
+M_d = γ_f × M_k = 1.4 × 29.25 = <strong>40.95 kN.m</strong>
+
+<strong>Conclusão:</strong> O momento de cálculo é M_d = 40.95 kN.m
+    </p>
+</section>
+<section class="level-1" id="ab117cac-85f6-42b4-9c18-6dfa160440c0">
+<h1 class="section-title">4 Resistências de Cálculo</h1>
+</section>
+<section class="level-2" id="14b287f8-740d-4819-b759-103f9633e3d5">
+<h2 class="section-title">4.4 Resistência de Cálculo do Concreto (f_cd)</h2>
+<p class="paragraph">
+A resistência de cálculo do concreto à compressão é obtida reduzindo-se a resistência 
+característica pelo coeficiente γ_c:
+
+f_cd = f_ck / γ_c = 30.0 / 1.4 = <strong>21.43 MPa</strong>
+    </p>
+</section>
+<section class="level-2" id="86a494fa-6c31-47e8-b95b-178d3a098e46">
+<h2 class="section-title">4.5 Resistência de Cálculo do Aço (f_yd)</h2>
+<p class="paragraph">
+A resistência de cálculo do aço ao escoamento é obtida reduzindo-se a resistência 
+característica pelo coeficiente γ_s:
+
+f_yd = f_yk / γ_s = 500.0 / 1.15 = <strong>434.78 MPa</strong>
+    </p>
+</section>
+<section class="level-1" id="0006514a-f01c-4f8f-aae3-9c3d2745dd4d">
+<h1 class="section-title">5 Dimensionamento da Armadura Longitudinal</h1>
+</section>
+<section class="level-2" id="7ce201f8-f4af-4e9a-b450-4260a9049892">
+<h2 class="section-title">5.6 Parâmetro Adimensional K_MD</h2>
+<p class="paragraph">
+O parâmetro adimensional K_MD é calculado por:
+
+K_MD = M_d / (b × d² × f_cd)
+
+Onde:
+- M_d = 4095.00 kN.cm
+- b = 20.0 cm
+- d = 45.0 cm
+- f_cd = 2.14 kN/cm²
+
+<strong>K_MD = 0.0472</strong>
+
+<strong>Verificação do domínio de deformação:</strong>
+- K_MD = 0.0472 < 0.295 ✓
+- <strong>Conclusão:</strong> Flexão simples, armadura simples é suficiente (Domínio 2 ou 3)
+    </p>
+</section>
+<section class="level-2" id="4d53249f-35a4-480e-bd22-659819b35815">
+<h2 class="section-title">5.7 Coeficiente K_z</h2>
+<p class="paragraph">
+O coeficiente da posição da linha neutra é:
+
+K_z = [1 - √(1 - 2×K_MD)] / 2 = [1 - √(1 - 2×0.0472)] / 2 = <strong>0.0242</strong>
+
+Este coeficiente indica a posição relativa da linha neutra na seção.
+    </p>
+</section>
+<section class="level-2" id="ee237ed8-9035-4721-813e-7adde200520f">
+<h2 class="section-title">5.8 Braço de Alavanca (z)</h2>
+<p class="paragraph">
+O braço de alavanca é:
+
+z = d × (1 - 0.4×K_z) = 45.0 × (1 - 0.4×0.0242) = <strong>44.56 cm</strong>
+    </p>
+</section>
+<section class="level-2" id="d115fb76-624f-4f87-b171-272eb14acb91">
+<h2 class="section-title">5.9 Área de Aço Calculada (A_s,calc)</h2>
+<p class="paragraph">
+A área de aço necessária é calculada por:
+
+A_s = M_d / (z × f_yd)
+
+A_s = 4095.00 / (44.56 × 43.48)
+
+<strong>A_s,calc = 2.11 cm²</strong>
+    </p>
+</section>
+<section class="level-1" id="7d2265e2-0e49-4021-82e3-7274546cd4ae">
+<h1 class="section-title">6 Verificações Normativas</h1>
+</section>
+<section class="level-2" id="a0ce683c-3956-4b7b-8a73-37293535d9e6">
+<h2 class="section-title">6.10 Armadura Mínima (NBR 6118:2023, item 17.3.5.2.1)</h2>
+<p class="paragraph">
+A taxa mínima de armadura é:
+
+ρ_min = 0.15% (para CA-50)
+
+A_s,min = ρ_min × b × d = 0.15% × 20.0 × 45.0 = <strong>1.35 cm²</strong>
+
+<strong>Verificação:</strong> A_s,calc = 2.11 cm² > A_s,min = 1.35 cm² ✓
+    </p>
+</section>
+<section class="level-2" id="4ddcadc6-fbe9-4bec-aad1-00974ec1c7f8">
+<h2 class="section-title">6.11 Armadura Máxima (NBR 6118:2023, item 17.3.5.2.4)</h2>
+<p class="paragraph">
+A área máxima de armadura é:
+
+A_s,max = 4% × b × h = 4% × 20.0 × 50.0 = <strong>40.00 cm²</strong>
+
+<strong>Verificação:</strong> A_s,calc = 2.11 cm² < A_s,max = 40.00 cm² ✓
+    </p>
+</section>
+<section class="level-1" id="15639667-31d1-42e1-8c93-b835554a82f1">
+<h1 class="section-title">7 Detalhamento da Armadura</h1>
+<p class="paragraph">
+<strong>Bitolas comerciais disponíveis para CA-50:</strong>
+
+| Diâmetro (mm) | Área (cm²) | Área 2φ (cm²) | Área 3φ (cm²) | Área 4φ (cm²) |
+|---------------|------------|---------------|---------------|---------------|
+| 6.3 | 0.31 | 0.62 | 0.93 | 1.24 |
+| 8.0 | 0.50 | 1.00 | 1.50 | 2.00 |
+| 10.0 | 0.79 | 1.58 | 2.36 | 3.14 |
+| 12.5 | 1.23 | 2.46 | 3.69 | 4.91 |
+| 16.0 | 2.01 | 4.02 | 6.03 | 8.04 |
+| 20.0 | 3.14 | 6.28 | 9.42 | 12.57 |
+    </p>
+<p class="paragraph">
+<strong>Armadura adotada:</strong> 4φ12.5 mm (A_s = 4.91 cm²)
+
+<strong>Verificação:</strong> 4.91 cm² > 2.11 cm² ✓
+
+<strong>Taxa de armadura:</strong>
+ρ = A_s / (b×d) = 4.91 / (20.0×45.0) = 0.55%
+
+<strong>Espaçamento:</strong>
+- Entre barras: s = (b - 2×c - 4×φ) / 3 = (20 - 2×3 - 4×1.25) / 3 = <strong>3.0 cm</strong>
+- NBR 6118:2023, item 18.3.2.2: s_min = max(2cm, φ, 1.2×d_max_agregado) = 2.0 cm ✓
+    </p>
+</section>
+<section class="level-1" id="8c7c6f78-2cac-42a7-8d3a-4debccbaf8d8">
+<h1 class="section-title">8 Conclusão</h1>
+<p class="paragraph">
+O dimensionamento da viga V1 resultou nas seguintes especificações:
+
+<strong>Armadura Longitudinal:</strong>
+- Calculada: A_s = 2.11 cm²
+- Adotada: 4φ12.5 mm (A_s = 4.91 cm²)
+- Taxa de armadura: ρ = 0.55%
+
+<strong>Verificações:</strong>
+- ✓ Domínio de deformação adequado (K_MD = 0.0472 < 0.295)
+- ✓ Armadura mínima atendida (4.91 > 1.35 cm²)
+- ✓ Armadura máxima atendida (4.91 < 40.00 cm²)
+- ✓ Espaçamento entre barras adequado (3.0 cm > 2.0 cm)
+
+Todas as exigências da NBR 6118:2023 foram atendidas.
+
+<strong>Observação:</strong> Este memorial não inclui o detalhamento da armadura transversal (estribos), 
+que deve ser verificada separadamente conforme NBR 6118:2023, item 17.4.
+        </p>
+</section>
+</div>
+</body>
+</html>

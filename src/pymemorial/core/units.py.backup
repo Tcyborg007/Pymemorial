@@ -1,0 +1,177 @@
+"""
+Sistema de unidades inteligente com validação dimensional.
+"""
+
+from typing import Union, Any, Optional, Dict
+import pint
+from decimal import Decimal
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Registro global Pint
+ureg = pint.UnitRegistry()
+ureg.default_format = "~P"
+
+# Aliases para tipos
+Quantity = Union[pint.Quantity, float, int, Decimal]
+
+# ✅ DATABASE DE ALIASES DE UNIDADES
+UNIT_ALIASES = {
+    # Comprimento
+    'metros': 'm', 'metro': 'm', 'centimetros': 'cm', 'centimetro': 'cm',
+    # Força
+    'quilonewton': 'kN', 'quilonewtons': 'kN', 'newton': 'N', 'newtons': 'N',
+    # Momento
+    'kN.m': 'kilonewton*meter', 'kNm': 'kilonewton*meter',
+    # Pressão
+    'megapascal': 'MPa', 'pascal': 'Pa'
+}
+
+
+def parse_quantity(value: Any, unit: str = None) -> pint.Quantity:
+    """
+    Converte valor para pint.Quantity com suporte a aliases.
+    
+    Args:
+        value: valor numérico ou string com unidade
+        unit: unidade (opcional se value já contém)
+    
+    Returns:
+        pint.Quantity
+    
+    Examples:
+    --------
+    >>> parse_quantity(10, "metros")  # Usa alias
+    >>> parse_quantity("10 kN.m")     # Interpreta string
+    """
+    # Resolve alias
+    if unit and unit in UNIT_ALIASES:
+        original_unit = unit  # ✅ SALVAR ORIGINAL ANTES DE SUBSTITUIR
+        unit = UNIT_ALIASES[unit]
+        logger.debug(f"Resolved unit alias: {original_unit} → {unit}")
+    
+    if isinstance(value, pint.Quantity):
+        return value
+    
+    if isinstance(value, str):
+        return ureg.parse_expression(value)
+    
+    if unit:
+        return ureg.Quantity(value, unit)
+    
+    return ureg.Quantity(value, "dimensionless")
+
+
+def check_dimensional_consistency(q1: pint.Quantity, q2: pint.Quantity) -> bool:
+    """Verifica se duas quantidades têm dimensionalidade compatível."""
+    try:
+        q1.to(q2.units)
+        return True
+    except pint.DimensionalityError:
+        return False
+
+
+# ✅ NOVO: Validador dimensional automático
+class DimensionalValidator:
+    """Valida consistência dimensional de expressões."""
+    
+    @staticmethod
+    def validate_operation(
+        op: str,
+        left: pint.Quantity,
+        right: pint.Quantity
+    ) -> Optional[str]:
+        """
+        Valida uma operação matemática.
+        
+        Args:
+            op: Operação (+, -, *, /, **)
+            left: Operando esquerdo
+            right: Operando direito
+        
+        Returns:
+            None se válido, mensagem de erro se inválido
+        
+        Examples:
+        --------
+        >>> v1 = ureg.Quantity(10, 'm')
+        >>> v2 = ureg.Quantity(5, 's')
+        >>> DimensionalValidator.validate_operation('+', v1, v2)
+        "Erro: não é possível somar [length] + [time]"
+        """
+        if op in ('+', '-'):
+            if not check_dimensional_consistency(left, right):
+                return (
+                    f"Erro dimensional: não é possível fazer {left.dimensionality} "
+                    f"{op} {right.dimensionality}"
+                )
+        
+        # Multiplicação e divisão sempre válidas
+        return None
+    
+    @staticmethod
+    def infer_result_units(
+        op: str,
+        left: pint.Quantity,
+        right: pint.Quantity
+    ) -> pint.Unit:
+        """Infere unidades do resultado de uma operação."""
+        if op == '+' or op == '-':
+            return left.units
+        elif op == '*':
+            return left.units * right.units
+        elif op == '/':
+            return left.units / right.units
+        elif op == '**':
+            return left.units ** right.magnitude
+        else:
+            raise ValueError(f"Operação desconhecida: {op}")
+
+
+def add_custom_unit(name: str, definition: str) -> None:
+    """
+    Adiciona unidade customizada ao registro.
+    
+    Args:
+        name: Nome da unidade
+        definition: Definição (ex: "1000 * newton")
+    
+    Examples:
+    --------
+    >>> add_custom_unit('tf', '1000 * kilogram_force')
+    >>> v = ureg.Quantity(10, 'tf')
+    """
+    ureg.define(f"{name} = {definition}")
+    logger.info(f"Custom unit registered: {name} = {definition}")
+
+
+def strip_units(value):
+    """
+    Remove unidades de um valor, retornando apenas o número.
+    
+    Args:
+        value: Valor com ou sem unidade (float, Quantity, Variable, etc.)
+    
+    Returns:
+        float: Valor numérico sem unidade
+    
+    Examples:
+        >>> strip_units(150.0)
+        150.0
+        >>> strip_units(Q_(150, 'kN'))
+        150.0
+    """
+    # Se for Quantity do Pint
+    if hasattr(value, 'magnitude'):
+        return float(value.magnitude)
+    
+    # Se for Variable do PyMemorial
+    if hasattr(value, 'value'):
+        return float(value.value)
+    
+    # Se já for número
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise TypeError(f"Cannot strip units from {type(value).__name__}")

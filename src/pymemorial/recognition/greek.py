@@ -10,10 +10,11 @@ Mapeia símbolos gregos para uso em memoriais de cálculo:
 Example:
     >>> GreekSymbols.to_unicode("gamma_s = 1.4")
     'γ_s = 1.4'
-    
     >>> GreekSymbols.to_latex("γ_s")
     '$\\gamma_{s}$'
 """
+
+import re
 
 # Mapa completo Unicode ↔ ASCII
 ASCII_TO_GREEK = {
@@ -80,10 +81,8 @@ class GreekSymbols:
         result = text
         for ascii_name, unicode_symbol in ASCII_TO_GREEK.items():
             # Word boundary para evitar substituição parcial
-            import re
             pattern = r'\b' + ascii_name + r'\b'
             result = re.sub(pattern, unicode_symbol, result, flags=re.IGNORECASE)
-        
         return result
     
     @staticmethod
@@ -109,30 +108,32 @@ class GreekSymbols:
             if unicode_symbol in result:
                 # Detecta subscrito
                 if with_subscripts:
-                    import re
                     pattern = re.escape(unicode_symbol) + r'_([a-zA-Z0-9]+)'
-                    replacement = f"${latex_cmd}_{{\\1}}$"
-                    result = re.sub(pattern, replacement, result)
-                    
-                    # Sem subscrito
-                    if unicode_symbol in result:
-                        result = result.replace(unicode_symbol, f"${latex_cmd}$")
-                else:
+                    # FIX CRÍTICO: usar lambda ao invés de replacement string
+                    def replace_with_subscript(m):
+                        return f"${latex_cmd}_{{{m.group(1)}}}$"
+                    result = re.sub(pattern, replace_with_subscript, result)
+                
+                # Sem subscrito (só se ainda existir símbolo não substituído)
+                if unicode_symbol in result:
                     result = result.replace(unicode_symbol, f"${latex_cmd}$")
         
         # 2. ASCII → LaTeX
         for ascii_name, unicode_symbol in ASCII_TO_GREEK.items():
             if ascii_name in result.lower():
-                import re
                 if with_subscripts:
                     pattern = r'\b' + ascii_name + r'_([a-zA-Z0-9]+)\b'
-                    replacement = f"$\\{ascii_name}_{{\\1}}$"
-                    result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
+                    # FIX CRÍTICO: usar lambda
+                    def replace_ascii_with_sub(m):
+                        return f"$\\{ascii_name}_{{{m.group(1)}}}$"
+                    result = re.sub(pattern, replace_ascii_with_sub, result, flags=re.IGNORECASE)
                 
                 # Sem subscrito
                 pattern_no_sub = r'\b' + ascii_name + r'\b'
-                replacement_no_sub = f"$\\{ascii_name}$"
-                result = re.sub(pattern_no_sub, replacement_no_sub, result, flags=re.IGNORECASE)
+                # FIX CRÍTICO: usar lambda
+                def replace_ascii_no_sub(m):
+                    return f"$\\{ascii_name}$"
+                result = re.sub(pattern_no_sub, replace_ascii_no_sub, result, flags=re.IGNORECASE)
         
         return result
     

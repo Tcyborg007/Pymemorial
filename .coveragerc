@@ -1,0 +1,28 @@
+[run]
+source = src/pymemorial
+omit =
+    */tests/*
+    */migrations/*
+    */__pycache__/*
+    # MÓDULOS LEGADOS (excluir do coverage por ora)
+    */core/variable.py
+    */core/calculator.py
+    */core/equation.py
+    */core/matrix.py
+    */core/cache.py
+    */recognition/text_processor.py
+    */recognition/patterns.py
+    */editor/natural_engine.py
+    */editor/smart_parser.py
+    # ... outros legados
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+
+# Coverage mínimo por módulo
+fail_under = 80
+
+[html]
+directory = htmlcov

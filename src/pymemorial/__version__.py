@@ -1,7 +1,10 @@
-"""PyMemorial version information."""
+# src/pymemorial/__version__.py
 
-__version__ = "0.5.0"
-__version_info__ = (0, 5, 0)
+"""Versão do PyMemorial (fallback para desenvolvimento)."""
+
+__version__ = "2.0.0-dev"
+
+__version_info__ = (1, 0, 0)
 
 # Metadata
 __title__ = "pymemorial"

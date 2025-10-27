@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Memorial de Cálculo</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; }
+        h2 { color: #34495e; border-bottom: 1px solid #bdc3c7; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #3498db; color: white; }
+    </style>
+</head>
+<body>
+
+# Memorial de Cálculo Estrutural Avançado
+**Projeto:** Análise Completa de Pórtico Espacial com Operações Matriciais  
+**Norma:** NBR 6118:2014 / NBR 8800:2008  
+**Engenheiro:** Sistema PyMemorial v3.1  
+**Data:** 23 de Outubro de 2025
+
+---
+
+## 1. Introdução
+
+Este memorial demonstra as capacidades avançadas do PyMemorial na análise 
+estrutural, combinando:
+- Matrizes de rigidez locais e globais
+- Transformações de coordenadas
+- Derivadas para análise de estabilidade
+- Integrais para propriedades geométricas
+- Steps detalhados em múltiplos níveis
+
+---
+
+## 2. Dados Gerais do Projeto
+
+### 2.1 Geometria da Estrutura
+
+L_vao = 12.0 m
+H_pilar = 4.5 m
+L_balanco = 3.0 m
+s_portico = 6.0 m
+
+### 2.2 Propriedades dos Materiais
+
+fck = 40.0 MPa
+Ec = 35000.0 MPa
+nu_c = 0.2
+gamma_c = 25.0
+
+fyk = 500.0 MPa
+Es = 210000.0 MPa
+
+### 2.3 Seções Transversais
+
+bw_viga = 20.0 cm
+h_viga = 60.0 cm
+bf_mesa = 80.0 cm
+hf_mesa = 10.0 cm
+
+b_pilar = 40.0 cm
+h_pilar_sec = 60.0 cm
+
+---
+
+## 3. Propriedades Geométricas
+
+### 3.1 Área da Seção em T
+
+
+
+
+
+
+
+A área total da viga T é **0.18** cm².
+
+### 3.2 Centro de Gravidade
+
+
+
+
+
+
+
+O centro de gravidade está a **0.38** cm da base.
+
+### 3.3 Momento de Inércia
+
+
+
+
+
+
+
+O momento de inércia é **6.15e-03** cm⁴.
+
+---
+
+## 4. Matriz de Rigidez Local
+
+Le_elemento = L_vao
+
+
+
+Rigidez flexional: **2.15e+08** MPa·cm⁴.
+
+
+**Matriz K_local (Steps Mode - Fallback):**
+Forma Original (string):
+$$K_local = \text{(Error formatting: [[12*EI_viga/Le_elemento**3, 6*EI_viga/Le_elemento...)}$$
+(Método .array() não encontrado para avaliação numérica)
+
+
+---
+
+## 5. Análise de Cargas
+
+g_total = 15.0 kN/m
+q_acidental = 5.0 kN/m
+
+
+
+Carga distribuída: **28500.00** kN/m.
+
+
+
+
+
+Momento máximo: **513000.00** kN·m.
+
+---
+
+**Responsável Técnico:**  
+Eng. PyMemorial System v3.1  
+CREA XXXXX
+
+**Revisão:** v3.1.1 - 23/10/2025
+
+</body>
+</html>

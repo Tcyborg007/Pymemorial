@@ -1,6 +1,6 @@
 # src/pymemorial/document/base_document.py
 """
-Base Document Module - Foundation for all technical documents (v2.0: PHASE 7.4 Enhanced).
+Base Document Module - Foundation for all technical documents (v2.0: PHASE 7.4 Enhanced - MVP Compatible).
 
 This module provides the abstract base class and core infrastructure for
 generating professional technical documents (calculation memorials, reports,
@@ -9,7 +9,7 @@ scientific articles, presentations) with support for:
 - Hierarchical section structure with automatic numbering
 - Figures, tables, equations with auto-numbering and cross-references
 - Technical verifications (NBR, AISC, Eurocode standards)
-- **Natural Language Processing**: Write in plain text, auto-detect variables
+- **Smart Text Processing**: Write in plain text, auto-detect variables (MVP compatible)
 - **Smart Context Management**: Global context shared across all sections
 - Integration with Sections (PHASE 3-4-5)
 - Integration with FEM Backends (PHASE 5)
@@ -19,11 +19,11 @@ scientific articles, presentations) with support for:
 - Metadata management (author, company, revisions)
 - Document validation and integrity checks
 
-**REVOLUTIONARY UPDATES (PHASE 7.4)**:
-- **SmartTextEngine Integration**: add_paragraph() processes natural text (~expr~, γ_s → $\gamma_{s}$).
-- **Norm-Aware Suggestions**: suggest_verifications() auto-proposes checks via NLP.
-- **Advanced Validation**: Full circular refs + norm compliance (ex: gamma_s >=1.0 NBR).
-- **Render Context**: Includes symbol_extensions and compliance reports.
+**MVP v2.0 UPDATES**:
+- **SmartTextEngine Integration**: add_paragraph() processes text with auto_detect
+- **Simplified Suggestions**: Uses keyword matching (no heavy NLP)
+- **Advanced Validation**: Full circular refs + norm compliance (ex: gamma_s >=1.0 NBR)
+- **Render Context**: Includes detected variables and compliance reports
 
 Architecture
 ------------
@@ -52,14 +52,14 @@ Use concrete subclasses:
 >>> metadata = DocumentMetadata(...)
 >>> memorial = Memorial(metadata)
 
->>> # NEW: Natural paragraph with NLP
->>> memorial.add_paragraph("""
+>>> # MVP: Natural paragraph with text processing
+>>> memorial.add_paragraph(\"\"\"
 ... A resistência N_Rd = {N_Rd:.2f} kN supera N_Sd. Fator γ_s = {gamma_s}.
-... Fórmula: ~N_Rd = A_s * f_yd * sin(theta)~.
-... """)
->>> # Auto: Detecta vars, avalia expr, LaTeX γ_s, sugere verification NBR.
+... Fórmula: M_d = M_k * gamma_s.
+... \"\"\")
+>>> # Auto: Detecta vars, formata valores, processa símbolos gregos
 
->>> # NEW: Suggest verifications
+>>> # Suggest verifications (keyword-based)
 >>> suggestions = memorial.suggest_verifications("flambagem chi_LT")
 >>> # → [{'id': 'V-1', 'type': 'NBR', 'desc': 'Ver chi > 0.5'}]
 
@@ -67,7 +67,7 @@ Use concrete subclasses:
 
 Author: PyMemorial Team
 Date: 2025-10-21
-Version: 2.0.0  # Enhanced for PHASE 7.4 (NLP + Norm Intelligence)
+Version: 2.0.0 (MVP Compatible)
 Phase: 7.4 (Templates & Styles)
 """
 
@@ -88,6 +88,16 @@ from typing import (
     Any, Dict, List, Optional, Union, Literal,
     TYPE_CHECKING, Callable, Tuple
 )
+
+# Import template processor (internal)
+try:
+    from .internal.text_processing.text_utils import TemplateProcessor  # ← CORRETO!
+    TEMPLATE_PROCESSOR_AVAILABLE = True
+except ImportError as e:
+    TEMPLATE_PROCESSOR_AVAILABLE = False
+    TemplateProcessor = None
+    print(f"[WARNING] TemplateProcessor import failed: {e}")
+
 
 # Data handling imports (PHASE 7.2) - Robust fallbacks
 try:
@@ -157,14 +167,23 @@ except ImportError:
     VISUALIZATION_AVAILABLE = False
     warnings.warn("Visualization module not available (PHASE 6)", ImportWarning)
 
-# NEW PHASE 7.4: Recognition (NLP + SmartTextEngine)
+# MVP v2.0: Recognition (SmartTextEngine + DetectedVariable) - FIX
 try:
-    from pymemorial.recognition import get_engine, SmartTextEngine, EngineeringNLP, DetectedVar
+    from pymemorial.recognition import get_engine, SmartTextEngine, DetectedVariable
     RECOGNITION_AVAILABLE = True
 except ImportError:
     RECOGNITION_AVAILABLE = False
-    get_engine = SmartTextEngine = EngineeringNLP = DetectedVar = None
-    warnings.warn("Recognition module not available (PHASE 7.4 NLP)", ImportWarning)
+    get_engine = SmartTextEngine = DetectedVariable = None
+    warnings.warn("Recognition module not available (MVP v2.0)", ImportWarning)
+
+# SymPy fallback for equations
+try:
+    from sympy import sympify, latex as sympy_latex
+    SYMPY_AVAILABLE = True
+except ImportError:
+    SYMPY_AVAILABLE = False
+    sympify = sympy_latex = None
+    warnings.warn("SymPy not available. Equation LaTeX limited.", ImportWarning)
 
 # Type checking imports
 if TYPE_CHECKING:
@@ -196,7 +215,7 @@ class CrossReferenceError(DocumentError):
     pass
 
 class NormComplianceError(DocumentError):
-    """NEW: Raised for norm-specific violations (ex: gamma_s <1.0 NBR)."""
+    """Raised for norm-specific violations (ex: gamma_s <1.0 NBR)."""
     pass
 
 # ============================================================================
@@ -268,31 +287,31 @@ class CrossReference:
 
 @dataclass(frozen=True)
 class ValidationError:
-    """Validation error (enhanced: + type_hint for NLP)."""
+    """Validation error (enhanced: + type_hint)."""
     element_id: str
     message: str
     severity: Literal["error", "warning"] = "error"
-    type_hint: Optional[str] = None  # NEW: ex: 'safety_factor' para norm errors
+    type_hint: Optional[str] = None  # ex: 'safety_factor' for norm errors
 
-# NEW: Norm Compliance Report
+# Norm Compliance Report
 @dataclass
 class NormCompliance:
-    """NEW: Relatório de conformidade normativa (ex: fatores aplicados)."""
+    """Relatório de conformidade normativa (ex: fatores aplicados)."""
     norm: NormCode
     factors_applied: Dict[str, float] = field(default_factory=dict)  # ex: {'gamma_s': 1.4}
     verifications: Dict[str, bool] = field(default_factory=dict)  # ex: {'V-1': True}
     compliance_rate: float = 0.0
 
 # ============================================================================
-# MAIN CLASS: BaseDocument (Enhanced ABC)
+# MAIN CLASS: BaseDocument (Enhanced ABC - MVP Compatible)
 # ============================================================================
 
 class BaseDocument(ABC):
     """
     Abstract base class for all PyMemorial documents.
 
-    **REVOLUTIONARY**: Integrates SmartTextEngine for natural text in add_paragraph().
-    Auto-suggests verifications via NLP (ex: "flambagem" → chi NBR check).
+    **MVP v2.0**: Integrates SmartTextEngine for text processing in add_paragraph().
+    Auto-suggests verifications via keyword matching (lightweight, no heavy NLP).
     Norm-aware: Applies factors (1.4 NBR) in validations.
 
     Subclass for concrete types (Memorial, Report).
@@ -316,15 +335,15 @@ class BaseDocument(ABC):
         self._logger.setLevel(logging.INFO)
         
         # Core elements
-        self.sections: List['Section'] = []  # PHASE 3-4
+        self.sections: List['Section'] = []
         self.figures: List['Figure'] = []
         self.tables: List['Table'] = []
         self.equations: List['EquationDoc'] = []
         self.verifications: List['Verification'] = []
         self.revisions: List['Revision'] = []
         
-        # NEW PHASE 7.4: NLP Integration
-        self.processor: Optional[SmartTextEngine] = get_engine(nlp=True) if RECOGNITION_AVAILABLE else None
+        # MVP v2.0: SmartTextEngine Integration - FIX: auto_detect parameter
+        self.processor: Optional[SmartTextEngine] = get_engine(auto_detect=True) if RECOGNITION_AVAILABLE else None
         
         # Context and registry
         self._global_context: Dict[str, Any] = {}
@@ -333,7 +352,7 @@ class BaseDocument(ABC):
         self._auto_counters = defaultdict(int)  # For numbering
         self._frozen = False
         
-        # NEW: Norm compliance tracking
+        # Norm compliance tracking
         self.compliance: NormCompliance = NormCompliance(norm=metadata.norm_code)
         
         # Initial revision
@@ -352,7 +371,7 @@ class BaseDocument(ABC):
         """Convert to serializable dict."""
         pass
 
-    # CORE METHODS (Enhanced for Robustness)
+    # CORE METHODS (Enhanced for Robustness - MVP Compatible)
     def add_section(
         self,
         title: str,
@@ -363,7 +382,7 @@ class BaseDocument(ABC):
         """
         Add hierarchical section (auto-numbering).
 
-        NEW: Validates title via NLP (detects keywords for suggestions).
+        MVP: Validates title via keyword matching for suggestions.
         """
         self._check_frozen()
         
@@ -385,11 +404,11 @@ class BaseDocument(ABC):
         if content:
             self.add_paragraph(content, parent=section)
         
-        # NEW: NLP suggestion
+        # MVP: Keyword-based suggestion
         if self.processor:
             suggestions = self.suggest_verifications(title)
             if suggestions:
-                self._logger.info(f"Suggested verifications for '{title}': {suggestions[:2]}")
+                self._logger.info(f"Suggested verifications for '{title}': {[s['id'] for s in suggestions[:2]]}")
         
         return section
 
@@ -397,77 +416,106 @@ class BaseDocument(ABC):
         self,
         text: str,
         parent: Optional['Section'] = None,
-        use_natural: bool = True,
+        style: str = 'body',
         **kwargs
     ) -> 'ContentBlock':
         """
-        Add paragraph (REVOLUTIONARY: Natural text with NLP).
-
-        NEW: Integrates SmartTextEngine; processes ~expr~, {var:.2f}, gregos.
-        Fallback to legacy if use_natural=False.
-
+        Add paragraph with smart text processing (ROBUST).
+        
+        Supports:
+        - Placeholder substitution: {var:.2f}
+        - Global context variables
+        - Symbol detection: M_k, gamma_s, etc.
+        
         Args:
-            text: Natural text.
-            parent: Section to add to (default: last).
-            use_natural: Enable NLP (default True).
-            **kwargs: Local context vars.
-
-        Raises:
-            ValueError: No processor available.
+            text: Paragraph text (with optional {placeholders})
+            parent: Parent section or section ID
+            style: Paragraph style ('body', 'heading', etc.)
+            **kwargs: Additional options (merged into context)
+        
+        Returns:
+            ContentBlock with processed text
+        
+        Examples:
+        --------
+        >>> memorial.set_context({'M_k': 150.5, 'gamma_s': 1.4})
+        >>> memorial.add_paragraph(
+        ...     "Momento M_k = {M_k:.2f} kN.m com fator {gamma_s:.1f}.",
+        ...     parent=section
+        ... )
         """
         self._check_frozen()
         
+        # Determine parent section
         if parent is None:
             parent = self.sections[-1] if self.sections else None
             if not parent:
                 raise ValueError("Add a section first.")
         
+        # Merge global context with local kwargs
         context = self._global_context.copy()
         context.update(kwargs)
         
-        if use_natural and self.processor:
-            processed = self.processor.process_natural_text(text, context, mode='full')
+        # ====================================================================
+        # STEP 1: Process template with TemplateProcessor (ROBUST)
+        # ====================================================================
+        if TEMPLATE_PROCESSOR_AVAILABLE and context and '{' in text:
+            processor = TemplateProcessor(strict=False)  # Graceful fallback
             
-            # NEW: Auto-detect and add vars/equations
-            detected = self.processor._auto_detect_variables(text, context)
-            for var in detected:
-                if var.name not in context:
-                    self.set_context({var.name: var.value or 0.0})
-                if var.type_hint == 'safety_factor':
-                    self.compliance.factors_applied[var.name] = self._get_norm_factor(var.type_hint)
+            # Validate template
+            is_valid, missing_vars = processor.validate_template(text, context)
             
-            # Format {var:.2f}
-            def format_ph(match):
-                var_name, fmt = match.groups()
-                val = context.get(var_name, 0)
-                return f"{val:{fmt or '.2f'}}"
-            ph_pat = re.compile(r'\{([a-zA-Z_][a-zA-Z0-9_]*)(?::([^}]+))?\}')
-            processed = ph_pat.sub(format_ph, processed)
+            if not is_valid:
+                self._logger.warning(
+                    f"Template has missing variables: {missing_vars}. "
+                    f"Using partial substitution."
+                )
+            
+            # Process with context
+            try:
+                processed_text = processor.process(text, context)
+                self._logger.debug(f"Template processed: {len(processed_text)} chars")
+            except Exception as e:
+                self._logger.error(f"Template processing failed: {e}. Using original text.")
+                processed_text = text
         else:
-            # Legacy fallback
-            if hasattr(self, 'processor') and hasattr(self.processor, 'render'):
-                processed = self.processor.render(text, context)
-            else:
-                processed = text  # Raw fallback
+            # No template processing needed (or TemplateProcessor not available)
+            processed_text = text
+            if '{' in text and not context:
+                self._logger.warning(
+                    "Text has placeholders but no global context set. "
+                    "Call set_context() first."
+                )
         
-        block = ContentBlock(type=ContentType.TEXT, content=processed)
+        # ====================================================================
+        # STEP 2: Create content block
+        # ====================================================================
+        block = ContentBlock(
+            type=ContentType.TEXT,
+            content=processed_text,
+            
+        )
+        
+        # ====================================================================
+        # STEP 3: Add to parent section
+        # ====================================================================
         parent.add_content(block)
-        
-        # NEW: Validate paragraph
-        if self.processor:
-            valid, req = self.processor.validate_template(processed)
-            if not valid:
-                self._logger.warning(f"Paragraph invalid: {req}")
+        self._logger.debug(f"Paragraph added to section '{parent.title}'")
         
         return block
 
+
     def set_context(self, context: Dict[str, Any]) -> None:
-        """Set global context (enhanced: validates types via NLP)."""
+        """
+        Set global context (MVP: simplified validation without heavy NLP).
+        
+        Validates safety factors (gamma_s >= 1.0) for norm compliance.
+        """
         self._check_frozen()
         for k, v in context.items():
-            inferred = EngineeringNLP.infer_type(DetectedVar(name=k), str(v)) if RECOGNITION_AVAILABLE else 'unknown'
-            if inferred == 'safety_factor' and v < 1.0:
-                raise NormComplianceError(f"Invalid {inferred}: {v} <1.0 (norm: {self.metadata.norm_code})")
+            # Simple validation: safety factors must be >= 1.0
+            if ('gamma' in k.lower() or 'safety' in k.lower()) and isinstance(v, (int, float)) and v < 1.0:
+                raise NormComplianceError(f"Invalid safety factor {k}: {v} <1.0 (norm: {self.metadata.norm_code})")
             self._global_context[k] = v
         self._logger.debug(f"Context updated: {list(context.keys())}")
 
@@ -478,10 +526,10 @@ class BaseDocument(ABC):
         description: str = "",
         norm_ref: Optional[str] = None
     ) -> 'Verification':
-        """Add verification (enhanced: auto-applies norm factors)."""
+        """Add verification (auto-applies norm factors if applicable)."""
         self._check_frozen()
         
-        # NEW: Apply norm factors to context if safety
+        # Apply norm factors to context if safety-related
         if norm_ref:
             factor = self._get_norm_factor('safety_factor')
             for k in self._global_context:
@@ -493,12 +541,9 @@ class BaseDocument(ABC):
         self._register_element(verification.id, verification)
         return verification
 
-    # NEW REVOLUTIONARY: suggest_verifications
     def suggest_verifications(self, context_text: str, max_suggestions: int = 3) -> List[Dict[str, Any]]:
         """
-        AI-like suggestion: Uses NLP to propose verifications based on text.
-
-        NEW: Revolutionary for workflows - "flambagem" → suggest chi NBR check.
+        MVP: Simplified suggestion using keyword matching (no heavy NLP).
 
         Args:
             context_text: Text/keywords (ex: "flambagem chi_LT").
@@ -507,47 +552,45 @@ class BaseDocument(ABC):
         Returns:
             List of suggestions [{'id': 'V-1', 'desc': '...', 'norm': 'NBR'}].
         """
-        if not RECOGNITION_AVAILABLE:
-            return []
-        
         suggestions = []
-        nlp = EngineeringNLP()
-        detected = DetectedVar(name=context_text, base=context_text)
-        inferred = nlp.infer_type(detected, context_text)
+        context_lower = context_text.lower()
         
-        # Patterns for suggestions (expansível)
+        # Keyword-based suggestion map (expansível)
         suggestion_map = {
             'flambagem': [{'id': 'V-1', 'desc': 'Verificação chi > 0.5 (NBR 6118)', 'norm': 'NBR6118_2023'}],
             'moment': [{'id': 'V-2', 'desc': 'M_d <= M_Rd com gamma_s', 'norm': 'NBR6118_2023'}],
-            'safety_factor': [{'id': 'V-3', 'desc': 'Fator gamma_s =1.4 aplicado', 'norm': 'NBR6118_2023'}],
+            'gamma': [{'id': 'V-3', 'desc': 'Fator gamma_s =1.4 aplicado', 'norm': 'NBR6118_2023'}],
+            'compress': [{'id': 'V-4', 'desc': 'N_d <= N_Rd', 'norm': 'NBR8800_2024'}],
         }
         
-        if inferred in suggestion_map:
-            suggestions = suggestion_map[inferred][:max_suggestions]
-            self._logger.info(f"Suggested {len(suggestions)} verifications for '{inferred}'.")
+        for keyword, sug_list in suggestion_map.items():
+            if keyword in context_lower:
+                suggestions.extend(sug_list)
+                if len(suggestions) >= max_suggestions:
+                    break
         
+        suggestions = suggestions[:max_suggestions]
+        self._logger.info(f"Suggested {len(suggestions)} verifications for '{context_text}'.")
         return suggestions
 
-    # VALIDATION (Implemented TODO: Full circular + norm)
+    # VALIDATION (Implemented: Full circular + norm)
     def validate(self) -> List[ValidationError]:
         """Full validation (sections, refs, norm compliance)."""
         errors = []
         
-        # Circular references (implemented: DFS)
+        # Circular references (DFS)
         if not self._check_circular_references():
             errors.append(ValidationError("doc", "Circular references detected in sections/refs.", "error"))
         
-        # Norm compliance (NEW)
+        # Norm compliance
         for v in self.verifications:
             if not v.passed and v.norm_ref:
                 errors.append(ValidationError(v.id, f"Verification failed under {v.norm_ref}", "error", 'norm_compliance'))
         
-        # NEW: NLP var consistency
-        if self.processor:
-            for k, v in self._global_context.items():
-                inferred = EngineeringNLP.infer_type(DetectedVar(name=k), str(v))
-                if inferred == 'safety_factor' and v < 1.0:
-                    errors.append(ValidationError(k, f"Invalid {inferred}: {v} <1.0", "warning", inferred))
+        # Variable consistency (simple checks)
+        for k, v in self._global_context.items():
+            if ('gamma' in k.lower() or 'safety' in k.lower()) and isinstance(v, (int, float)) and v < 1.0:
+                errors.append(ValidationError(k, f"Invalid safety factor: {v} <1.0", "warning", 'safety_factor'))
         
         if errors:
             raise DocumentValidationError(errors)
@@ -556,7 +599,7 @@ class BaseDocument(ABC):
         return []
 
     def _check_circular_references(self) -> bool:
-        """Implement TODO: DFS for cycles in cross_refs/sections."""
+        """DFS for cycles in cross_refs/sections."""
         visited = set()
         rec_stack = set()
         
@@ -581,7 +624,7 @@ class BaseDocument(ABC):
 
     # RENDER & EXPORT (Enhanced Context)
     def get_render_context(self) -> Dict[str, Any]:
-        """Enhanced: + symbol_extensions, compliance."""
+        """Enhanced: + detected variables, compliance."""
         context = {
             'metadata': self.metadata,
             'sections': self.sections,
@@ -594,27 +637,20 @@ class BaseDocument(ABC):
             'revisions': self.revisions,
             'cross_refs': self.cross_refs,
         }
-        # NEW: NLP extensions + compliance
-        if self.processor:
+        
+        # MVP: Add detected variables if processor available
+        if self.processor and RECOGNITION_AVAILABLE:
             all_text = ' '.join(getattr(s, 'content', '') for s in self.sections)
-            detected = self.processor._auto_detect_variables(all_text, self._global_context)
-            context['symbol_extensions'] = self.processor.get_symbol_extensions(detected)
+            # Simple detection (no _auto_detect_variables method in MVP)
+            var_pattern = r'\b([a-zA-Z_][a-zA-Z0-9_]*)\b'
+            detected_vars = list(set(re.findall(var_pattern, all_text)))
+            context['detected_variables'] = detected_vars
+        
         context['compliance'] = asdict(self.compliance)
         return context
 
     def get_toc(self) -> List[Dict[str, Any]]:
-        """
-        Generate table of contents.
-        
-        Returns
-        -------
-        List[Dict]
-            List of TOC entries with:
-            - number: Section number (e.g., "1.2.3")
-            - title: Section title
-            - level: Hierarchy level (1-6)
-            - id: Section ID
-        """
+        """Generate table of contents."""
         toc = []
         for section in self.sections:
             if section.title:  # Skip paragraphs (no title)
@@ -626,38 +662,14 @@ class BaseDocument(ABC):
                 })
         
         self._logger.debug(f"TOC generated with {len(toc)} entries")
-        
         return toc
     
     def get_element_by_id(self, element_id: str) -> Optional[Any]:
-        """
-        Get element by ID.
-        
-        Parameters
-        ----------
-        element_id : str
-            Element UUID
-        
-        Returns
-        -------
-        Any or None
-            Element (Section, Figure, etc) or None if not found
-        """
+        """Get element by ID."""
         return self._element_registry.get(element_id)
     
     def export_json(self, output_path: Path) -> None:
-        """
-        Export document structure to JSON.
-        
-        Parameters
-        ----------
-        output_path : Path
-            Output JSON file path
-        
-        Examples
-        --------
-        >>> doc.export_json(Path("document.json"))
-        """
+        """Export document structure to JSON."""
         output_path = Path(output_path)
         data = self.to_dict()
         
@@ -667,18 +679,7 @@ class BaseDocument(ABC):
         self._logger.info(f"Document exported to JSON: {output_path}")
     
     def export_yaml(self, output_path: Path) -> None:
-        """
-        Export document structure to YAML.
-        
-        Parameters
-        ----------
-        output_path : Path
-            Output YAML file path
-        
-        Examples
-        --------
-        >>> doc.export_yaml(Path("document.yaml"))
-        """
+        """Export document structure to YAML."""
         try:
             import yaml
         except ImportError:
@@ -699,9 +700,7 @@ class BaseDocument(ABC):
         parent: Optional['Section'] = None,
         numbered: bool = True
     ) -> 'Figure':
-        """
-        Add figure (integrated with viz PHASE 6; auto-numbering).
-        """
+        """Add figure (integrated with viz PHASE 6; auto-numbering)."""
         self._check_frozen()
         
         if parent is None:
@@ -728,9 +727,7 @@ class BaseDocument(ABC):
         parent: Optional['Section'] = None,
         numbered: bool = True
     ) -> 'Table':
-        """
-        Add table (Pandas fallback to list; auto-numbering).
-        """
+        """Add table (Pandas fallback to list; auto-numbering)."""
         self._check_frozen()
         
         if parent is None:
@@ -760,9 +757,7 @@ class BaseDocument(ABC):
         parent: Optional['Section'] = None,
         numbered: bool = True
     ) -> 'EquationDoc':
-        """
-        Add equation (SymPy LaTeX; auto-numbering).
-        """
+        """Add equation (SymPy LaTeX; auto-numbering)."""
         self._check_frozen()
         
         if parent is None:
@@ -774,12 +769,14 @@ class BaseDocument(ABC):
         self._auto_counters[counter_key] += 1
         number = f"({self._auto_counters[counter_key]})"
         
-        # Parse with core Equation if available
-        if CORE_AVAILABLE:
-            eq = EquationDoc(expression=sympify(expression), description=description)
-            latex_expr = sympy_latex(eq.expression)
+        # Parse with SymPy if available
+        if CORE_AVAILABLE and SYMPY_AVAILABLE:
+            try:
+                eq_expr = sympify(expression)
+                latex_expr = sympy_latex(eq_expr)
+            except:
+                latex_expr = expression  # Fallback
         else:
-            eq = EquationDoc(expression=expression, description=description)
             latex_expr = expression  # Raw fallback
         
         equation = EquationDoc(latex=latex_expr, number=number, description=description)
@@ -795,33 +792,7 @@ class BaseDocument(ABC):
         to_id: str,
         ref_type: CrossReferenceType
     ) -> None:
-        """
-        Create cross-reference between elements.
-        
-        Parameters
-        ----------
-        from_id : str
-            Source element ID
-        to_id : str
-            Target element ID
-        ref_type : CrossReferenceType
-            Type of reference
-        
-        Raises
-        ------
-        CrossReferenceError
-            If either ID doesn't exist
-        
-        Examples
-        --------
-        >>> section = doc.add_section("Introduction", "...")
-        >>> figure = doc.add_figure(Path("fig.png"), "Example")
-        >>> doc.add_cross_reference(
-        ...     from_id=section.id,
-        ...     to_id=figure.id,
-        ...     ref_type=CrossReferenceType.FIGURE
-        ... )
-        """
+        """Create cross-reference between elements."""
         self._check_frozen()
         
         # Validate IDs exist
@@ -843,6 +814,15 @@ class BaseDocument(ABC):
         
         self._logger.debug(f"Cross-reference added: {from_id} -> {to_id} ({ref_type.value})")
     
+    def add_revision(self, changes: str, version: str) -> None:
+        """Add revision entry."""
+        revision = Revision(
+            version=version,
+            changes=changes
+        )
+        self.revisions.append(revision)
+        self._logger.debug(f"Revision added: {version}")
+
     # HELPERS PRIVADOS (Modularizados)
     def _get_norm_factor(self, type_hint: str) -> float:
         """Helper: Fator por norma/type (expansível)."""
@@ -855,12 +835,11 @@ class BaseDocument(ABC):
 
     def _generate_number(self, level: int) -> str:
         """Auto-number (ex: 1.2.3)."""
-        # Simples counter por level; expansível
         counters = [str(self._auto_counters[f"section_{i}"]) for i in range(1, level + 1)]
         return '.'.join(counters)
 
     def _register_element(self, element_id: str, element: Any) -> None:
-        """Register element (unchanged)."""
+        """Register element."""
         self._element_registry[element_id] = element
 
     def _check_frozen(self) -> None:
@@ -871,7 +850,7 @@ class BaseDocument(ABC):
                 "Create a new document instance to make changes."
             )
 
-    # Magic Methods (Praticidade)
+    # Magic Methods
     def __repr__(self) -> str:
         """String representation."""
         return (
@@ -899,9 +878,7 @@ class BaseDocument(ABC):
 class Memorial(BaseDocument):
     """Concrete Memorial subclass."""
     def render(self, output_path: Union[str, Path], format: str = "pdf") -> Path:
-        """
-        Render memorial to PDF (WeasyPrint stub; expandir para full PHASE 7.5).
-        """
+        """Render memorial to PDF (WeasyPrint stub)."""
         try:
             from weasyprint import HTML, CSS
         except ImportError:
@@ -910,14 +887,14 @@ class Memorial(BaseDocument):
         output_path = Path(output_path)
         context = self.get_render_context()
         
-        # Simple HTML template (expansível com Jinja2 PHASE 7.4)
+        # Simple HTML template (expansível com Jinja2)
         html_content = f"""
         <html><head><title>{self.metadata.title}</title>
         <style>body {{ font-family: Arial; }} h1 {{ color: blue; }}</style></head>
         <body><h1>{self.metadata.title}</h1>
         <p>Norm: {self.metadata.norm_code}</p>
         <ul>{''.join(f'<li>{entry["number"]} {entry["title"]}</li>' for entry in context["toc"])}</ul>
-        <div>{''.join(str(c.content) for s in context["sections"] for c in getattr(s, "contents", []))}</div>
+        <div>{''.join(str(getattr(c, 'content', '')) for s in context["sections"] for c in getattr(s, "contents", []))}</div>
         <p>Compliance: {self.compliance.compliance_rate:.1%}</p>
         </body></html>
         """
@@ -935,18 +912,17 @@ class Memorial(BaseDocument):
         }
 
 class Report(BaseDocument):
-    """Concrete Report subclass (similar to Memorial; customize render)."""
+    """Concrete Report subclass."""
     def render(self, output_path: Union[str, Path], format: str = "pdf") -> Path:
-        # Similar to Memorial, but with report-specific template (ex: cover page)
-        return super().render(output_path, format)  # Delegate or expand
+        # Similar to Memorial
+        return super().render(output_path, format)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"type": "report", **super().to_dict()}
+        return {"type": "report", **self.get_render_context()}
 
 class Article(BaseDocument):
-    """Concrete Article subclass (LaTeX-focused for scientific)."""
+    """Concrete Article subclass (LaTeX-focused)."""
     def render(self, output_path: Union[str, Path], format: str = "tex") -> Path:
-        # Stub for LaTeX (use pdflatex)
         output_path = Path(output_path)
         context = self.get_render_context()
         tex_content = f"\\documentclass{{article}}\\begin{{document}}\\title{{{self.metadata.title}}}\\maketitle {context['toc']} \\end{{document}}"
@@ -955,10 +931,10 @@ class Article(BaseDocument):
         return output_path
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"type": "article", **super().to_dict()}
+        return {"type": "article", **self.get_render_context()}
 
 # ============================================================================
-# FALLBACKS FOR MISSING CLASSES (From history - Robust)
+# FALLBACKS FOR MISSING CLASSES (Robust)
 # ============================================================================
 
 if 'Section' not in globals():
@@ -1026,13 +1002,12 @@ if 'Table' not in globals():
         id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 if 'EquationDoc' not in globals():
+    @dataclass
     class EquationDoc:
-        def __init__(self, expression: Union[str, Equation], description: str = "", number: str = ""):
-            self.expression = expression
-            self.description = description
-            self.number = number
-            self.latex = sympy_latex(expression) if CORE_AVAILABLE else str(expression)
-            self.id = str(uuid.uuid4())
+        latex: str
+        number: str = ""
+        description: str = ""
+        id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 # ============================================================================
 # EXPORTS

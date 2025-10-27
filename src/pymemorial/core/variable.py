@@ -23,10 +23,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Any, Union, List
 from datetime import datetime
 
-__all__ = [
-    'Variable',
-    'VariableError'
-]
+
 
 
 # =============================================================================
@@ -552,3 +549,7 @@ class Variable:
 
 
 
+__all__ = [
+    'Variable',
+    'VariableError'
+]
