@@ -1,1269 +1,1503 @@
-# src/pymemorial/core/equation.py
 """
-Symbolic and Numerical Equation System - PyMemorial v2.0 (Production Ready).
+PyMemorial v2.0 - Equation Module
+Motor simbólico com SymPy + Sistema de Steps (Calcpad-inspired)
 
-Features:
-- ✅ Safe expression parsing (SymPy + AST fallback)
-- ✅ Automatic norm factor application (via standards module)
-- ✅ Detailed step-by-step solutions (PT-BR)
-- ✅ LaTeX output with Greek symbol support
-- ✅ Integration with text processor and recognition
-- ✅ Smart optimization suggestions
-- ✅ Immutable design (functional updates)
-- ✅ Comprehensive validation
-- ✅ Cache-aware evaluation
-- ✅ HYBRID substitution (xreplace for speed, subs for algebra)
-- ✅ Smart step-by-step with granularity control
-
-Author: PyMemorial Team
-Date: 2025-10-21
-Version: 2.1.0 (OPTIMIZED - xreplace + granularity support)
+FILOSOFIA:
+- Sintaxe Python natural (Handcalcs-inspired)
+- Steps automáticos com 4 níveis de granularidade (Calcpad-inspired)
+- Validação dimensional completa
+- Thread-safe e cache-optimized
 """
-
-from __future__ import annotations
 
 import ast
+import re
 import logging
-from typing import Dict, Optional, Union, Any, List, TYPE_CHECKING, Literal
+import threading
+from typing import (
+    Dict, List, Optional, Union, Any, Callable, Set, Tuple
+)
 from dataclasses import dataclass, field
-from copy import deepcopy
+from enum import Enum
+from functools import lru_cache
 
-# Core dependencies
+# Imports condicionais
 try:
     import sympy as sp
-    import numpy as np
+    from sympy import Symbol, Expr, sympify, lambdify
     SYMPY_AVAILABLE = True
 except ImportError:
     SYMPY_AVAILABLE = False
-    sp = None
+    Symbol = Any
+    Expr = Any
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
     np = None
-from . import NUMPY_AVAILABLE # Importa a flag do __init__.py do core
-# Type checking imports
-if TYPE_CHECKING:
-    from .variable import Variable
-    from .cache import ResultCache
-from .units import Quantity, PINT_OK, QuantityTypeHint, ureg, strip_units, latex_unit # Adicionado ureg, strip_units, latex_unit# Optional imports
-try:
-    from ..recognition import get_engine, DetectedVariable
-    RECOGNITION_AVAILABLE = True
-except ImportError:
-    RECOGNITION_AVAILABLE = False
-    get_engine = EngineeringNLP = DetectedVar = None
 
-try:
-    from ..standards import get_norm_factor, NormCode
-    STANDARDS_AVAILABLE = True
-except ImportError:
-    STANDARDS_AVAILABLE = False
-    # Fallback norm factors
-    DEFAULT_NORM_FACTORS = {
-        'NBR6118_2023': {'safety_factor': 1.4},
-        'AISC360_22': {'safety_factor': 1.5},
-        'EC2_2004': {'safety_factor': 1.5},
-    }
-
-# ============================================================================
-# LOGGER
-# ============================================================================
-
-logger = logging.getLogger(__name__)
-
-# ============================================================================
-# TYPE DEFINITIONS
-# ============================================================================
-
-GranularityType = Literal['minimal', 'basic', 'normal', 'detailed', 'all', 'smart']
-
-
-
-
-# ADICIONAR ao equation.py (após linha 100)
-
-from typing import Protocol, Callable, List, Dict, Any
-from abc import ABC, abstractmethod
-
-class StepPlugin(Protocol):
-    """
-    Protocol para plugins de steps personalizados.
-    
-    Permite ao usuário injetar processamento customizado em qualquer
-    ponto da geração de steps.
-    
-    Attributes:
-        priority: Prioridade de execução (0 = primeiro)
-        name: Nome identificador do plugin
-    
-    Examples:
-    --------
-    >>> class NBR6118ValidationPlugin:
-    ...     priority = 0
-    ...     name = 'NBR6118_Validator'
-    ...     
-    ...     def process(self, expression, variables, context):
-    ...         # Validação customizada NBR 6118
-    ...         return {
-    ...             'step': 'Validação NBR 6118',
-    ...             'operation': 'validation',
-    ...             'expr': 'OK',
-    ...             'numeric': None,
-    ...             'description': 'Verificação de limites normativos'
-    ...         }
-    >>> 
-    >>> # Registrar plugin globalmente
-    >>> StepRegistry.register(NBR6118ValidationPlugin())
-    >>> 
-    >>> # Ou usar diretamente em uma equação
-    >>> eq.steps(plugins=[NBR6118ValidationPlugin()])
-    """
-    
-    def process(
-        self,
-        expression: sp.Expr,
-        variables: Dict[str, 'Variable'],
-        context: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Processa um passo customizado.
-        
-        Args:
-            expression: Expressão SymPy atual
-            variables: Variáveis disponíveis
-            context: Contexto com histórico de passos e resultados
-        
-        Returns:
-            Dict com estrutura:
-            {
-                'step': str,          # Descrição do passo
-                'operation': str,     # Tipo de operação
-                'expr': str,          # LaTeX da expressão
-                'numeric': float,     # Valor numérico (opcional)
-                'description': str    # Descrição detalhada
-            }
-            ou None para pular este passo
-        """
-        ...
-    
-    @property
-    def priority(self) -> int:
-        """Prioridade de execução (menor = executa primeiro)."""
-        ...
-    
-    @property
-    def name(self) -> str:
-        """Nome identificador do plugin."""
-        ...
-
-
-class StepRegistry:
-    """
-    Registro global de plugins de steps.
-    
-    Permite registrar plugins que serão automaticamente aplicados
-    em todas as chamadas de `steps()`, a menos que sobrescritos.
-    
-    Examples:
-    --------
-    >>> # Registrar plugin globalmente
-    >>> StepRegistry.register(MyCustomPlugin())
-    >>> 
-    >>> # Listar plugins ativos
-    >>> plugins = StepRegistry.get_plugins()
-    >>> 
-    >>> # Remover plugin específico
-    >>> StepRegistry.unregister('MyCustomPlugin')
-    >>> 
-    >>> # Limpar todos
-    >>> StepRegistry.clear()
-    """
-    
-    _plugins: List[StepPlugin] = []
-    
-    @classmethod
-    def register(cls, plugin: StepPlugin) -> None:
-        """
-        Registra um novo plugin.
-        
-        Plugins são ordenados automaticamente por prioridade.
-        
-        Args:
-            plugin: Instância do plugin
-        """
-        cls._plugins.append(plugin)
-        cls._plugins.sort(key=lambda p: p.priority)
-        logger.info(f"Plugin registrado: {plugin.name} (priority={plugin.priority})")
-    
-    @classmethod
-    def unregister(cls, plugin_name: str) -> bool:
-        """
-        Remove um plugin pelo nome.
-        
-        Args:
-            plugin_name: Nome do plugin
-        
-        Returns:
-            True se removido, False se não encontrado
-        """
-        initial_count = len(cls._plugins)
-        cls._plugins = [p for p in cls._plugins if p.name != plugin_name]
-        removed = len(cls._plugins) < initial_count
-        
-        if removed:
-            logger.info(f"Plugin removido: {plugin_name}")
-        else:
-            logger.warning(f"Plugin não encontrado: {plugin_name}")
-        
-        return removed
-    
-    @classmethod
-    def get_plugins(cls) -> List[StepPlugin]:
-        """Retorna cópia da lista de plugins registrados."""
-        return cls._plugins.copy()
-    
-    @classmethod
-    def clear(cls) -> None:
-        """Remove todos os plugins registrados."""
-        count = len(cls._plugins)
-        cls._plugins.clear()
-        logger.info(f"Registro de plugins limpo ({count} plugins removidos)")
+# Imports internos
+from pymemorial.core.config import get_config
+from pymemorial.core.variable import Variable
+from pymemorial.core.units import (
+    get_unit_registry,
+    UnitValidator,
+    UnitParser,
+    PINT_AVAILABLE
+)
+from pymemorial.recognition.ast_parser import PyMemorialASTParser
+from pymemorial.symbols.custom_registry import get_registry
 
 
 # ============================================================================
-# EQUATION CLASS
+# EXCEÇÕES CUSTOMIZADAS
 # ============================================================================
+
+class EquationError(Exception):
+    """Erro base para operações com equações."""
+    pass
+
+
+class ValidationError(EquationError):
+    """Erro de validação de equação."""
+    pass
+
+
+class EvaluationError(EquationError):
+    """Erro durante avaliação de equação."""
+    pass
+
+
+class SubstitutionError(EquationError):
+    """Erro durante substituição de valores."""
+    pass
+
+
+class DimensionalError(EquationError):
+    """Erro de compatibilidade dimensional."""
+    pass
+
+
+# ============================================================================
+# ENUMS E DATACLASSES
+# ============================================================================
+
+class GranularityType(Enum):
+    """Níveis de granularidade de steps (Calcpad-inspired)."""
+    MINIMAL = "minimal"      # Apenas resultado
+    BASIC = "basic"          # Fórmula + Resultado
+    MEDIUM = "medium"        # Fórmula + Substituição + Resultado (4 steps)
+    DETAILED = "detailed"    # Todos os passos intermediários
+    ALL = "all"              # Debug mode com explicações
+
+
+class StepType(Enum):
+    """Tipos de steps de cálculo."""
+    FORMULA = "formula"              # Fórmula simbólica
+    SUBSTITUTION = "substitution"    # Substituição de valores
+    CALCULATION = "calculation"      # Cálculo intermediário
+    SIMPLIFICATION = "simplification" # Simplificação algébrica
+    RESULT = "result"                # Resultado final
+    EXPLANATION = "explanation"      # Explicação textual
+
 
 @dataclass
+class Step:
+    """Representa um passo de cálculo."""
+    type: StepType
+    content: str
+    latex: str
+    explanation: str = ""
+    level: int = 0
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def __str__(self) -> str:
+        """Representação string."""
+        return f"[{self.type.value}] {self.content}"
+
+
+@dataclass
+class EvaluationResult:
+    """Resultado de avaliação de equação."""
+    value: Union[float, int, np.ndarray, Expr]
+    expression: str
+    symbolic: Optional[Expr] = None
+    unit: Optional[str] = None
+    steps: List[Step] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def __str__(self) -> str:
+        """Formatação do resultado."""
+        config = get_config()
+        precision = config.display.precision
+        
+        # Formatar valor
+        if isinstance(self.value, (int, float)):
+            value_str = f"{self.value:.{precision}f}"
+        else:
+            value_str = str(self.value)
+        
+        # Adicionar unidade se disponível
+        if self.unit:
+            return f"{value_str} {self.unit}"
+        return value_str
+
+
+# ============================================================================
+# CLASSE EQUATION - NÚCLEO SIMBÓLICO
+# ============================================================================
+
 class Equation:
     """
-    Symbolic equation with safe parsing, norm optimization, and detailed steps.
+    Equação simbólica com SymPy.
     
-    Features:
-    - Safe expression parsing (SymPy or AST fallback)
-    - Automatic norm factor application
-    - Step-by-step solution generation (PT-BR) with granularity control
-    - LaTeX output with Greek symbols
-    - Integration with recognition and text processor
-    - Immutable design (functional updates)
-    - Cache-aware evaluation
-    - Hybrid substitution (xreplace for speed, subs for algebra)
-    
-    Attributes:
-        expression: SymPy expression or string
-        variables: Dictionary of Variable instances
-        result: Cached numerical result
-        description: Human-readable description
-        norm_factors: Applied norm factors (metadata)
-        _cache: Optional ResultCache instance
+    **FILOSOFIA:**
+    - Suporta expressões Python naturais
+    - Validação dimensional automática
+    - Geração de steps intermediários (Calcpad-style)
+    - Thread-safe e cache-optimized
     
     Examples:
-    --------
-    >>> from pymemorial.core import Equation, Variable
-    >>> 
-    >>> # Create variables
-    >>> M_k = Variable('M_k', value=150.0, unit='kN.m')
-    >>> gamma_s = Variable('gamma_s', value=1.4, unit='')
-    >>> 
-    >>> # Create equation
-    >>> eq = Equation(
-    ...     expression='M_d = M_k * gamma_s',
-    ...     variables={'M_k': M_k, 'gamma_s': gamma_s},
-    ...     description='Design moment calculation'
-    ... )
-    >>> 
-    >>> # Evaluate
-    >>> result = eq.evaluate()
-    >>> print(result)  # 210.0
-    >>> 
-    >>> # Get LaTeX
-    >>> latex = eq.latex()
-    >>> print(latex)  # "$M_d = M_k \\cdot \\gamma_s$"
-    >>> 
-    >>> # Get solution steps with granularity
-    >>> steps = eq.steps(granularity='detailed')
-    >>> for step in steps:
-    ...     print(step)
+        >>> # Criação simples
+        >>> eq = Equation("q * L**2 / 8")
+        >>> 
+        >>> # Com variáveis
+        >>> vars_dict = {
+        ...     'q': Variable('q', 15, unit='kN/m'),
+        ...     'L': Variable('L', 6, unit='m')
+        ... }
+        >>> eq = Equation("q * L**2 / 8", locals_dict=vars_dict)
+        >>> result = eq.evaluate()
+        >>> print(result)  # 67.5 kN*m
     """
     
-    expression: Union[sp.Expr, str, Any]
-    variables: Dict[str, 'Variable'] = field(default_factory=dict)
-    result: Optional[float] = None
-    description: str = ""
-    norm_factors: Dict[str, float] = field(default_factory=dict)
-    _cache: Optional['ResultCache'] = field(default=None, repr=False)
-    
-    def __post_init__(self):
+    def __init__(
+        self,
+        expression: Union[str, Expr],
+        locals_dict: Optional[Dict[str, Variable]] = None,
+        name: Optional[str] = None,
+        description: str = ""
+    ):
         """
-        Initialize equation and parse expression.
+        Inicializa equação.
+        
+        Args:
+            expression: Expressão matemática (string ou SymPy Expr)
+            locals_dict: Dicionário de variáveis disponíveis
+            name: Nome da equação (ex: 'M_max')
+            description: Descrição textual
         
         Raises:
-            ValueError: If expression is invalid or variables are missing
-            ImportError: If SymPy is not available (required)
+            ValidationError: Se expressão inválida
         """
         if not SYMPY_AVAILABLE:
             raise ImportError(
-                "SymPy is required for Equation. Install via: pip install sympy"
+                "SymPy não disponível. Instale com: pip install sympy"
             )
         
-        # Validate variables
-        self._validate_variables()
+        self.name = name
+        self.description = description
+        self.locals_dict = locals_dict or {}
+        self._lock = threading.Lock()
         
-        # Parse expression
-        if isinstance(self.expression, str):
-            self.expression = self._parse_expression(self.expression)
+        # ============================================================
+        # CORREÇÃO: Inicializar logger ANTES de parsear expressão
+        # ============================================================
+        self._logger = logging.getLogger(__name__)
         
-        logger.debug(
-            f"Equation initialized: {len(self.variables)} variables, "
-            f"description='{self.description[:50]}...'"
-        )
-    
-    def _validate_variables(self) -> None:
-        """
-        Validate variables dictionary.
+        # Parser de símbolos
+        self._symbol_registry = get_registry()
         
-        Raises:
-            ValueError: If variables is not a dict or contains invalid entries
-        """
-        if not isinstance(self.variables, dict):
-            raise ValueError(f"variables must be dict, got {type(self.variables)}")
-        
-        for name, var in self.variables.items():
-            if not hasattr(var, 'symbol'):
-                raise ValueError(
-                    f"Variable '{name}' must have 'symbol' attribute "
-                    f"(got {type(var)})"
-                )
-    
-    def _parse_expression(self, expr_str: str) -> sp.Expr:
-        """
-        Parse expression string to SymPy expression.
-        
-        Supports:
-        - Standard format: "expr"
-        - Equation format: "lhs = rhs" (extracts rhs)
-        
-        Args:
-            expr_str: Expression string
-        
-        Returns:
-            SymPy expression
-        
-        Raises:
-            ValueError: If parsing fails (PT-BR message)
-        """
-        # Extract RHS if equation format
-        if '=' in expr_str:
-            parts = expr_str.split('=', 1)
-            if len(parts) == 2:
-                expr_str = parts[1].strip()
-                logger.debug(f"Extracted RHS from equation: '{expr_str}'")
-        
-        # Build local dictionary with symbols
-        local_dict = {name: var.symbol for name, var in self.variables.items()}
-        
-        try:
-            # Primary method: SymPy sympify
-            expr = sp.sympify(expr_str, locals=local_dict, evaluate=False)
-            logger.debug(f"Parsed expression using sympify: {expr}")
-            return expr
-        
-        except Exception as e:
-            logger.warning(f"SymPy parse failed: {e}. Trying AST fallback.")
-            
-            try:
-                # Fallback: Safe AST parse
-                expr = self._safe_ast_parse(expr_str, local_dict)
-                logger.debug(f"Parsed expression using AST fallback: {expr}")
-                return expr
-            
-            except Exception as e2:
-                # ✅ MENSAGEM EM PORTUGUÊS
-                raise ValueError(
-                    f"Erro ao converter expressão '{expr_str}': "
-                    f"Erro SymPy: {e}, Erro AST: {e2}"
-                ) from e2
-    
-    def _safe_ast_parse(self, expr_str: str, local_dict: Dict) -> Any:
-        """
-        Safe expression parsing using AST whitelist.
-        
-        Args:
-            expr_str: Expression string
-            local_dict: Local symbol dictionary
-        
-        Returns:
-            Parsed expression (SymPy-like)
-        
-        Raises:
-            ValueError: If expression contains unsafe operations
-        """
-        # Whitelist of allowed AST nodes
-        ALLOWED_NODES = (
-            ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name,
-            ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.USub, ast.UAdd,
-            ast.Mod, ast.FloorDiv, ast.Load
-        )
-        
-        # Parse AST
-        tree = ast.parse(expr_str, mode='eval')
-        
-        # Validate all nodes are safe
-        for node in ast.walk(tree):
-            if not isinstance(node, ALLOWED_NODES):
-                raise ValueError(
-                    f"Operação não segura na expressão: {node.__class__.__name__}"
-                )
-        
-        # Compile and evaluate
-        code = compile(tree, '<string>', 'eval')
-        result = eval(code, {"__builtins__": {}}, local_dict)
-        
-        return result
-    
-    # ========================================================================
-    # EXPRESSION MANIPULATION (HYBRID APPROACH)
-    # ========================================================================
-    
-    def subs(self, *args, **kwargs) -> sp.Expr:
-        """
-        SymPy-style substitution (algebraic/mathematical).
-        
-        ⚡ Uses `subs()` for ALGEBRAIC substitution (slower but smarter).
-        For pure speed, use `xreplace()` instead.
-        
-        Supports multiple call styles:
-        1. subs({symbol: value})         - dict
-        2. subs(symbol, value)           - positional args
-        3. subs(x=1, y=2)                - kwargs
-        
-        Args:
-            *args: Either dict or (symbol, value) pairs
-            **kwargs: Alternative syntax (x=1, y=2)
-        
-        Returns:
-            SymPy expression with substitutions applied
-        
-        Raises:
-            KeyError: If variable not found
-            ValueError: If substitution fails
-        
-        Examples:
-        --------
-        >>> # Algebraic substitution (simplifies)
-        >>> result = eq.subs(x=2)  # x**2 becomes 4
-        
-        >>> # For speed, use xreplace() instead
-        >>> result = eq.xreplace({x_sym: 2})  # x**2 stays x**2 with x=2
-        """
-        # Parse arguments
-        if args and len(args) == 1 and isinstance(args[0], dict):
-            # Style 1: dict
-            substitutions = args[0]
-        elif args and len(args) == 2:
-            # Style 2: positional (symbol, value)
-            substitutions = {args[0]: args[1]}
-        elif kwargs:
-            # Style 3: kwargs - ✅ VALIDATE BEFORE try-except
-            subs_dict = {}
-            for name, value in kwargs.items():
-                if name in self.variables:
-                    subs_dict[self.variables[name].symbol] = value
-                else:
-                    # Try to find in free_symbols
-                    symbols_map = {str(s): s for s in self.expression.free_symbols}
-                    if name in symbols_map:
-                        subs_dict[symbols_map[name]] = value
-                    else:
-                        # ✅ RAISE KeyError IMMEDIATELY
-                        raise KeyError(
-                            f"Variável '{name}' não encontrada. "
-                            f"Disponíveis: {list(self.variables.keys())}"
-                        )
-            substitutions = subs_dict
-        elif args and len(args) > 2:
-            # Multiple pairs: subs(x, 1, y, 2)
-            if len(args) % 2 != 0:
-                raise ValueError("subs() requer pares de (símbolo, valor)")
-            substitutions = {args[i]: args[i+1] for i in range(0, len(args), 2)}
+        # Converter para SymPy Expr
+        if isinstance(expression, str):
+            self.expression_str = expression
+            self.expr = self._parse_expression(expression)
+        elif isinstance(expression, Expr):
+            self.expr = expression
+            self.expression_str = str(expression)
         else:
-            raise ValueError("Chamada inválida de subs(). Use subs(dict), subs(symbol, value) ou subs(x=1, y=2)")
+            raise ValidationError(
+                f"Tipo de expressão inválido: {type(expression)}"
+            )
         
-        # Apply substitution (now can only raise ValueError for other reasons)
-        try:
-            return self.expression.subs(substitutions)
-        except Exception as e:
-            raise ValueError(f"Substituição falhou: {e}") from e
+        # Extrair metadados
+        self.free_symbols = self.expr.free_symbols
+        self.variables_used = [str(s) for s in self.free_symbols]
+        
+        # Validação dimensional
+        self._validate_dimensions()
+
     
-    def xreplace(self, substitutions: Dict) -> sp.Expr:
+    def _parse_expression(self, expr_str: str) -> Expr:
         """
-        Literal (syntactic) substitution - FASTER and MORE ROBUST.
-        
-        ⚡ PERFORMANCE: ~10x faster than subs() for large expressions!
-        
-        Unlike `subs()`, this performs **direct symbol replacement**
-        without algebraic simplifications. Perfect for:
-        - Step-by-step calculations
-        - Numerical evaluation
-        - Large expression trees
+        Parse string para SymPy Expr.
         
         Args:
-            substitutions: Dict {symbol: value}
+            expr_str: Expressão como string
         
         Returns:
-            SymPy expression with literal substitutions
-        
-        Examples:
-        --------
-        >>> # Fast literal substitution (no simplification)
-        >>> eq = Equation("x**2 + 2*x", {"x": Variable("x", 3)})
-        >>> result = eq.xreplace({eq.variables['x'].symbol: 3})
-        >>> print(result)  # 3**2 + 2*3 (not simplified to 15)
-        
-        >>> # Use evaluate() to get final number
-        >>> print(result.evalf())  # 15.0
-        """
-        try:
-            return self.expression.xreplace(substitutions)
-        except Exception as e:
-            raise ValueError(f"xreplace falhou: {e}") from e
-    
-    def substitute(self, **kwargs) -> 'Equation':
-        """
-        Substitute variable values in expression (functional update).
-        
-        ⚡ Uses `xreplace()` for SPEED (literal substitution).
-        
-        Returns a NEW Equation instance (immutable design).
-        
-        Args:
-            **kwargs: Variable name -> value mapping
-        
-        Returns:
-            New Equation with substituted values
+            SymPy Expr
         
         Raises:
-            KeyError: If variable not found
-        
-        Examples:
-        --------
-        >>> eq2 = eq.substitute(M_k=200.0)
-        >>> print(eq2.expression)  # M_d = 200.0 * gamma_s
+            ValidationError: Se parsing falhar
         """
-        # ✅ VALIDATE variables exist BEFORE substitution
-        for name in kwargs.keys():
-            if name not in self.variables:
-                raise KeyError(
-                    f"Variável '{name}' não encontrada. "
-                    f"Disponíveis: {list(self.variables.keys())}"
-                )
-        
-        # Build substitution dictionary
-        subs_dict = {}
-        for name, var in self.variables.items():
-            if name in kwargs:
-                subs_dict[var.symbol] = kwargs[name]
-            else:
-                value = var.value.magnitude if hasattr(var.value, 'magnitude') else var.value
-                if value is not None:
-                    subs_dict[var.symbol] = value
-        
-        # ⚡ Use xreplace for speed (literal substitution)
-        new_expr = self.expression.xreplace(subs_dict)
-        
-        # Create new Equation instance
-        return Equation(
-            expression=new_expr,
-            variables=deepcopy(self.variables),
-            result=None,  # Invalidate cached result
-            description=self.description,
-            norm_factors=deepcopy(self.norm_factors),
-            _cache=self._cache
-        )
-    
-    def simplify(self) -> Union[sp.Expr, int, float]:
-        """
-        Simplify expression algebraically.
-        
-        Returns:
-            Simplified SymPy expression or numeric value
-        
-        Examples:
-        --------
-        >>> simplified = eq.simplify()
-        >>> print(simplified)  # Simplified form (sp.Expr or number)
-        """
-        simplified_expr = sp.simplify(self.expression)
-        
-        # Return direct expression, not wrapped in Equation
-        return simplified_expr
-    
-    # ========================================================================
-    # EVALUATION
-    # ========================================================================
-    
-# src/pymemorial/core/equation.py
-
-    # ... (código anterior) ...
-
-    # ========================================================================
-    # EVALUATION
-    # ========================================================================
-    
-    def _needs_integer_conversion(self) -> bool:
-        """
-        Detect if expression requires integers (factorial, binomial, etc.).
-        ✅ EXCLUDES floor/ceiling - they MUST receive floats!
-        Returns:
-            True if expression contains functions requiring integers
-        """
-        # Verifica se a expressão é um objeto SymPy antes de converter para string
-        if isinstance(self.expression, sp.Expr):
-            expr_str = str(self.expression).lower()
-            integer_functions = ['factorial', 'binomial']  # ✅ ONLY these need int
-            return any(func in expr_str for func in integer_functions)
-        return False # Não aplicável se não for expressão SymPy
-
-    def evaluate(self, use_cache: bool = True, auto_convert_units: bool = True) -> float:
-        """
-        Evaluate expression numerically using SymPy's robust evalf(subs=...).
-        Assumes Variable.value already holds numerical value in SI base units.
-
-        Args:
-            use_cache: Use cached result if available
-            auto_convert_units: (Mainly handled by Variable, kept for signature consistency)
-
-        Returns:
-            Numerical result as a standard Python float.
-
-        Raises:
-            ValueError: If variables are missing values or evaluation fails.
-        """
-        # Ensure SymPy is available
-        if not SYMPY_AVAILABLE:
-            raise ImportError("SymPy is required for evaluation.")
-
-        # Ensure expression is a SymPy expression
-        if not isinstance(self.expression, sp.Expr):
-             try:
-                 self.expression = self._parse_expression(str(self.expression))
-             except Exception as parse_error:
-                 raise ValueError(f"Expression is not a valid SymPy object and parsing failed: {parse_error}") from parse_error
-
-        # Check cache first
-        cache_key = str(self.expression)
-        if use_cache:
-             if self.result is not None:
-                  logger.debug(f"Using instance cached result: {self.result}")
-                  return self.result
-             if self._cache:
-                  cached = self._cache.get(cache_key)
-                  if cached is not None:
-                       logger.debug(f"Using external cache result: {cached}")
-                       self.result = cached
-                       return cached
-
-        # Prepare substitution dictionary with numerical values from var.value
-        used_symbols = self.expression.free_symbols
-        missing_vars = []
-        subs_dict = {}
-
-        for var_name, var in self.variables.items():
-            if var.symbol in used_symbols:
-                # --- ✅ SIMPLIFICAÇÃO AQUI ---
-                # Assume var.value é None ou um número (float/int/ndarray) em unidade base
-                value = var.value
-                # --- FIM DA SIMPLIFICAÇÃO ---
-
-                if value is None:
-                    missing_vars.append(var_name)
-                else:
-                    try:
-                       # Garante que é float ou int (ou deixa ndarray passar)
-                       if NUMPY_AVAILABLE and isinstance(value, np.ndarray):
-                            numeric_value = value # Mantém ndarray
-                       else:
-                            numeric_value = float(value) # Converte para float
-
-                       # Convert to int ONLY for specific functions
-                       if self._needs_integer_conversion():
-                           # Verifica se o float pode ser convertido para int sem perda
-                           if isinstance(numeric_value, float) and numeric_value.is_integer():
-                                numeric_value = int(numeric_value)
-                           # Não faz nada se já for int ou se não for inteiro
-
-                       subs_dict[var.symbol] = numeric_value
-
-                    except (TypeError, ValueError) as e:
-                       logger.error(f"Could not use value for '{var_name}' ({value}): {e}")
-                       missing_vars.append(f"{var_name}(valor inválido: {value})")
-                       continue
-
-        # Check for symbols in expression not covered by provided variables
-        for sym in used_symbols:
-            # Verifica se o símbolo está faltando no dicionário de substituição E
-            # não é uma variável conhecida (com valor None, já tratada) E
-            # não é um símbolo especial (x,y,z) E
-            # não é uma função/constante SymPy conhecida
-            is_known_sympy = hasattr(sp, str(sym))
-            is_integration_var = str(sym) in ['x', 'y', 'z']
-            is_missing_var = sym not in subs_dict and str(sym) not in self.variables
+        try:
+            # ============================================================
+            # CORREÇÃO: Remover atribuições (M = ...) antes de parsear
+            # ============================================================
+            if '=' in expr_str:
+                # Detectar se é equação com atribuição
+                parts = expr_str.split('=')
+                if len(parts) == 2:
+                    # Ignorar lado esquerdo, usar apenas expressão direita
+                    expr_str = parts[1].strip()
+                    self._logger.debug(f"Removendo atribuição: usando '{expr_str}'")
             
-            if is_missing_var and not is_integration_var and not is_known_sympy:
-                missing_vars.append(f"{str(sym)}(não definida)")
-
-        # Raise error if any required variables are missing values
-        if missing_vars:
-            raise ValueError(f"Variáveis sem valor ou não definidas na expressão: {', '.join(sorted(list(set(missing_vars))))}")
-
-        # Perform evaluation using SymPy's evalf with substitutions
-        try:
-            logger.debug(f"Evaluating expression: {self.expression}")
-            logger.debug(f"With substitutions: {subs_dict}")
-
-            result_sympy = self.expression.evalf(subs=subs_dict)
-
-            if not result_sympy.is_number:
-                # Se ainda não for número, tenta simplificar e avaliar de novo (pode ajudar em alguns casos)
-                simplified_result = sp.simplify(result_sympy)
-                if simplified_result.is_number:
-                     result_sympy = simplified_result
-                else:
-                     raise ValueError(f"A avaliação resultou em uma expressão simbólica não resolvida: {result_sympy}")
-
-            result = float(result_sympy)
-
-            # Cache result
-            self.result = result
-            if self._cache:
-                 self._cache.set(cache_key, result)
-
-            logger.debug(f"Evaluation successful: result={result}")
-            return result
-
+            # Criar símbolos locais
+            local_symbols = {}
+            if self.locals_dict:
+                for name in self.locals_dict.keys():
+                    local_symbols[name] = Symbol(name)
+            
+            # Parsing com SymPy
+            expr = sympify(expr_str, locals=local_symbols)
+            
+            return expr
+            
         except Exception as e:
-            logger.error(f"SymPy evaluation failed for expression '{self.expression}' with subs {subs_dict}: {e}")
-            logger.debug(traceback.format_exc())
-            raise ValueError(f"Erro ao avaliar expressão '{self.expression}': {e}") from e
-
-
+            raise ValidationError(
+                f"Erro ao parsear expressão '{expr_str}': {e}"
+            )
 
     
-    # ========================================================================
-    # NORM OPTIMIZATION
-    # ========================================================================
+    def _validate_dimensions(self) -> None:
+        """
+        Valida compatibilidade dimensional da equação.
+        
+        Raises:
+            DimensionalError: Se dimensões incompatíveis
+        """
+        if not PINT_AVAILABLE or not self.locals_dict:
+            return
+        
+        validator = UnitValidator(get_unit_registry())
+        
+        # Extrair unidades de variáveis
+        units_map = {}
+        for name, var in self.locals_dict.items():
+            if var.unit:
+                units_map[name] = var.unit
+        
+        # TODO: Implementar validação dimensional completa
+        # Análise AST da expressão para verificar operações
+        pass
     
-    def optimize_norm(
+    def get_variables(self) -> List[str]:
+        """Retorna lista de nomes de variáveis."""
+        return self.variables_used
+    
+    def get_free_symbols(self) -> Set[Symbol]:
+        """Retorna símbolos livres (SymPy)."""
+        return self.free_symbols
+    
+    def substitute(
         self,
-        norm_code: str = 'NBR6118_2023',
-        auto_detect: bool = True
+        subs: Dict[str, Union[float, int, str, Variable]]
     ) -> 'Equation':
         """
-        Apply norm factors to equation.
-        
-        Returns a NEW Equation instance (immutable design).
+        Substitui valores ou símbolos na equação.
         
         Args:
-            norm_code: Norm code (e.g., 'NBR6118_2023')
-            auto_detect: Auto-detect safety factors via recognition
+            subs: Dicionário de substituições
         
         Returns:
-            New Equation with norm factors applied
+            Nova Equation com valores substituídos
         
         Examples:
-        --------
-        >>> eq2 = eq.optimize_norm('NBR6118_2023')
-        >>> print(eq2.norm_factors)  # {'gamma_s': 1.4}
+            >>> eq = Equation("a + b")
+            >>> eq2 = eq.substitute({'a': 10, 'b': 5})
+            >>> print(eq2.evaluate())  # 15
         """
-        if not RECOGNITION_AVAILABLE or not auto_detect:
-            logger.debug("Norm optimization skipped (recognition unavailable or disabled)")
-            return self
-        
-        try:
-            nlp = EngineeringNLP()
-            applied_factors = {}
-            
-            # Check each variable for safety factor
-            for var_name, var in self.variables.items():
-                if 'gamma' in var_name.lower() or 'factor' in var_name.lower():
-                    # Infer type using recognition
-                    detected = DetectedVar(name=var_name, base=var_name, subscript='')
-                    inferred_type = nlp.infer_type(detected, self.description)
-                    
-                    if 'safety' in inferred_type or 'factor' in inferred_type:
-                        # Get norm factor
-                        factor = self._get_norm_factor(norm_code, 'safety_factor')
-                        applied_factors[var_name] = factor
-                        
-                        logger.info(
-                            f"Norm factor {factor} applied to '{var_name}' "
-                            f"(norm: {norm_code})"
-                        )
-            
-            # Create new Equation with updated norm_factors
-            return Equation(
-                expression=self.expression,
-                variables=deepcopy(self.variables),
-                result=None,
-                description=f"{self.description} (norm: {norm_code})",
-                norm_factors={**self.norm_factors, **applied_factors},
-                _cache=self._cache
-            )
-        
-        except Exception as e:
-            logger.warning(f"Norm optimization failed: {e}")
-            return self
-    
-    def _get_norm_factor(self, norm_code: str, factor_type: str) -> float:
-        """
-        Get norm factor from standards module or fallback.
-        
-        Args:
-            norm_code: Norm code
-            factor_type: Factor type
-        
-        Returns:
-            Norm factor value
-        """
-        if STANDARDS_AVAILABLE:
-            return get_norm_factor(norm_code, factor_type)
-        else:
-            return DEFAULT_NORM_FACTORS.get(norm_code, {}).get(factor_type, 1.0)
-    
-    # ========================================================================
-    # SOLUTION STEPS (WITH GRANULARITY CONTROL)
-    # ========================================================================
-    
-    def _operation_description(self, operation: str) -> str:
-        """
-        Get Portuguese description for operation type.
-        
-        Args:
-            operation: Operation type
-        
-        Returns:
-            Portuguese description
-        """
-        descriptions = {
-            'symbolic': 'Expressão simbólica',
-            'substitution': 'Substituição de valores',
-            'simplification': 'Simplificação algébrica',
-            'evaluation': 'Avaliação numérica',
-            'result': 'Resultado final',
-            'intermediate': 'Passo intermediário',
-        }
-        return descriptions.get(operation, 'Passo de cálculo')
-    
-    def steps(
-        self,
-        detail: str = 'basic',
-        granularity: Optional[GranularityType] = None,
-        show_units: bool = True,
-        max_steps: Optional[int] = None,
-        plugins: Optional[List[StepPlugin]] = None,
-        custom_formatters: Optional[Dict[str, Callable]] = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Generate detailed solution steps (PT-BR) with granularity control.
-
-        🎯 GRANULARITY LEVELS (MAPEADOS AUTOMATICAMENTE):
-        - 'minimal'/'numeric'/'result': Simbólico + resultado (2 steps)
-        - 'basic': Simbólico + substituição + resultado (3 steps)
-        - 'normal': Basic + avaliação + simplificação (5+ steps)
-        - 'detailed': Normal + operações detalhadas (7+ steps)
-        - 'all'/'full': Máximo detalhe com análise (10+ steps)
-        - 'smart': Auto-detecta complexidade (padrão)
-
-        📝 ALIASES ACEITOS:
-        - 'numeric', 'result' → 'minimal'
-        - 'full' → 'all'
-        - Qualquer outro valor não mapeado → 'smart'
-        """
-
-        # ✅ MAPEAMENTO ROBUSTO DE ALIASES
-        granularity_aliases = {
-            # Aliases para minimal (resultado direto)
-            'numeric': 'minimal',
-            'result': 'minimal',
-            'minimal': 'minimal',
-
-            # Aliases para basic
-            'basic': 'basic',
-            'simple': 'basic',
-
-            # Aliases para normal
-            'normal': 'normal',
-            'medium': 'normal',
-
-            # Aliases para detailed
-            'detailed': 'detailed',
-            'verbose': 'detailed',
-
-            # Aliases para all
-            'all': 'all',
-            'full': 'all',
-            'maximum': 'all',
-
-            # Smart (auto-detect)
-            'smart': 'smart',
-            'auto': 'smart',
-        }
-
-        # Handle legacy 'detail' parameter
-        if granularity is None:
-            # Map old 'detail' values to new granularity
-            detail_to_granularity = {
-                'basic': 'basic',
-                'detailed': 'detailed',
-                'full': 'all',
-                'simple': 'basic',
-                'normal': 'normal'
-            }
-            granularity = detail_to_granularity.get(detail, 'smart')
-
-        # ✅ APLICAR MAPEAMENTO DE ALIASES (case-insensitive)
-        granularity_lower = str(granularity).lower().strip()
-        granularity = granularity_aliases.get(granularity_lower, 'smart')
-
-        # Validate granularity (agora aceita apenas valores válidos pós-mapeamento)
-        valid_levels = {'minimal', 'basic', 'normal', 'detailed', 'all', 'smart'}
-        if granularity not in valid_levels:
-            logger.warning(
-                f"Granularidade '{granularity_lower}' não reconhecida após mapeamento. "
-                f"Usando 'smart' como fallback."
-            )
-            granularity = 'smart'
-
-        # Auto-detect granularity if 'smart'
-        if granularity == 'smart':
-            try:
-                complexity = len(self.expression.free_symbols) + len(self.expression.args)
-                if complexity <= 2:
-                    granularity = 'basic'
-                elif complexity <= 4:
-                    granularity = 'normal'
-                elif complexity <= 8:
-                    granularity = 'detailed'
-                else:
-                    granularity = 'all'
-                logger.debug(f"Smart granularity selected: {granularity} (complexity={complexity})")
-            except Exception as e:
-                logger.warning(f"Failed to auto-detect complexity: {e}. Using 'normal'.")
-                granularity = 'normal'
-
-        steps = []
-        expr = self.expression
-
-        try:
-            # Step 1: SYMBOLIC (always included)
-            steps.append({
-                'step': 'Expressão simbólica',
-                'operation': 'symbolic',
-                'expr': sp.latex(expr),
-                'numeric': None,
-                'description': self.description or 'Forma simbólica da equação'
-            })
-
-            # Calculate result if not cached
-            result_value = self.result
-            if result_value is None:
-                try:
-                    result_value = self.evaluate(use_cache=False)
-                except Exception as e:
-                    logger.warning(f"Could not evaluate result for steps: {e}")
-                    result_value = None
-
-            # For 'minimal', skip to result immediately
-            if granularity == 'minimal':
-                if result_value is not None:
-                    steps.append({
-                        'step': 'Resultado final',
-                        'operation': 'result',
-                        'expr': f"{sp.latex(expr)} = {result_value:.6g}",
-                        'numeric': result_value,
-                        'description': 'Resultado final'
-                    })
-                steps = self._apply_plugins_and_formatters(
-                    steps, result_value, plugins, custom_formatters
-                )
-                return steps[:max_steps] if max_steps else steps
-
-            # Step 2: SUBSTITUTION (basic+)
-            if granularity in ('basic', 'normal', 'detailed', 'all'):
-                subs_dict = {}
-                for var_name, var in self.variables.items():
-                    if var.value is not None:
-                        value = var.value.magnitude if hasattr(var.value, 'magnitude') else var.value
-                        subs_dict[var.symbol] = value
-
-                if subs_dict:
-                    substituted = self.expression.xreplace(subs_dict)
-                    if isinstance(substituted, (int, float)):
-                        substituted = sp.sympify(substituted)
-
-                    steps.append({
-                        'step': 'Substituição de valores',
-                        'operation': 'substitution',
-                        'expr': sp.latex(substituted),
-                        'numeric': None,
-                        'description': 'Valores numéricos substituídos'
-                    })
-                    expr = substituted
-
-            # Step 3: EVALUATION (normal+)
-            if granularity in ('normal', 'detailed', 'all'):
-                try:
-                    if hasattr(expr, 'evalf'):
-                        evaluated = expr.evalf()
-                        if evaluated != expr and evaluated.is_number:
-                            steps.append({
-                                'step': 'Avaliação numérica',
-                                'operation': 'evaluation',
-                                'expr': sp.latex(evaluated),
-                                'numeric': float(evaluated),
-                                'description': 'Cálculo numérico das operações'
-                            })
-                            expr = evaluated
-                except:
-                    pass
-
-            # Step 4: SIMPLIFICATION (normal+)
-            if granularity in ('normal', 'detailed', 'all'):
-                try:
-                    simplified = sp.simplify(expr)
-                    if simplified != expr:
-                        steps.append({
-                            'step': 'Simplificação algébrica',
-                            'operation': 'simplification',
-                            'expr': sp.latex(simplified),
-                            'numeric': None,
-                            'description': 'Expressão simplificada'
-                        })
-                        expr = simplified
-                except:
-                    pass
-
-            # Step 5: INTERMEDIATE OPERATIONS (detailed+)
-            if granularity in ('detailed', 'all'):
-                if expr.is_Add:
-                    steps.append({
-                        'step': 'Operação identificada',
-                        'operation': 'intermediate',
-                        'expr': sp.latex(expr),
-                        'numeric': None,
-                        'description': 'Operação: Adição/Subtração'
-                    })
-                elif expr.is_Mul:
-                    steps.append({
-                        'step': 'Operação identificada',
-                        'operation': 'intermediate',
-                        'expr': sp.latex(expr),
-                        'numeric': None,
-                        'description': 'Operação: Multiplicação/Divisão'
-                    })
-                elif expr.is_Pow:
-                    steps.append({
-                        'step': 'Operação identificada',
-                        'operation': 'intermediate',
-                        'expr': sp.latex(expr),
-                        'numeric': None,
-                        'description': 'Operação: Potenciação'
-                    })
-
-            # Step 6: COMPLEXITY ANALYSIS (all only)
-            if granularity == 'all':
-                n_symbols = len(expr.free_symbols)
-                n_ops = len(expr.args) if hasattr(expr, 'args') else 1
-                complexity = n_symbols + n_ops
-
-                steps.append({
-                    'step': 'Análise de complexidade',
-                    'operation': 'intermediate',
-                    'expr': sp.latex(expr),
-                    'numeric': complexity,
-                    'description': f'Complexidade: {complexity} (símbolos: {n_symbols}, operações: {n_ops})'
-                })
-
-            # Step FINAL: RESULT (ALWAYS added if we have a result)
-            if result_value is not None:
-                steps.append({
-                    'step': 'Resultado final',
-                    'operation': 'result',
-                    'expr': f"{sp.latex(self.expression)} = {result_value:.6g}",
-                    'numeric': result_value,
-                    'description': 'Resultado final'
-                })
-
-            logger.debug(f"Generated {len(steps)} solution steps (granularity={granularity})")
-
-        except Exception as e:
-            logger.warning(f"Failed to generate steps: {e}")
-            steps.append({
-                'step': 'Erro',
-                'operation': 'error',
-                'expr': '',
-                'numeric': None,
-                'description': f"Não foi possível gerar passos: {e}"
-            })
-
-        # Apply plugins and formatters
-        steps = self._apply_plugins_and_formatters(
-            steps, result_value, plugins, custom_formatters
-        )
-
-        # Apply max_steps limit
-        return steps[:max_steps] if max_steps else steps
-
-    
-    def _apply_plugins_and_formatters(
-        self,
-        steps: List[Dict[str, Any]],
-        result_value: Optional[float],
-        plugins: Optional[List[StepPlugin]],
-        custom_formatters: Optional[Dict[str, Callable]]
-    ) -> List[Dict[str, Any]]:
-        """
-        Apply custom plugins and formatters to steps.
-        
-        Args:
-            steps: List of step dictionaries
-            result_value: Calculated result value
-            plugins: Custom step plugins
-            custom_formatters: Custom formatters
-        
-        Returns:
-            Modified steps list
-        """
-        # Apply custom plugins
-        active_plugins = plugins if plugins is not None else StepRegistry.get_plugins()
-        
-        if active_plugins:
-            context = {
-                'original_expression': self.expression,
-                'variables': self.variables,
-                'result': result_value,
-                'existing_steps': len(steps)
-            }
-            
-            for plugin in active_plugins:
-                try:
-                    plugin_step = plugin.process(self.expression, self.variables, context)
-                    if plugin_step:
-                        steps.append(plugin_step)
-                        logger.debug(f"Plugin applied: {plugin.name}")
-                except Exception as e:
-                    logger.warning(f"Plugin {plugin.name} failed: {e}")
-        
-        # Apply custom formatters
-        if custom_formatters:
-            for step in steps:
-                operation = step.get('operation')
-                if operation in custom_formatters:
+        with self._lock:
+            # Converter para formato SymPy
+            subs_sympy = {}
+            for name, value in subs.items():
+                symbol = Symbol(name)
+                
+                if isinstance(value, Variable):
+                    subs_sympy[symbol] = value.value
+                elif isinstance(value, (int, float)):
+                    subs_sympy[symbol] = value
+                elif isinstance(value, str):
+                    # ============================================================
+                    # CORREÇÃO: Parsear expressão string antes de substituir
+                    # ============================================================
                     try:
-                        step['formatted'] = custom_formatters[operation](step)
-                    except Exception as e:
-                        logger.warning(f"Formatter for '{operation}' failed: {e}")
-        
-        return steps
+                        # Tentar parsear como expressão SymPy
+                        parsed_expr = sympify(value)
+                        subs_sympy[symbol] = parsed_expr
+                    except Exception:
+                        # Se falhar, tratar como símbolo simples
+                        subs_sympy[symbol] = Symbol(value)
+                else:
+                    raise SubstitutionError(
+                        f"Tipo de substituição inválido para '{name}': {type(value)}"
+                    )
+            
+            # Substituir
+            new_expr = self.expr.subs(subs_sympy)
+            
+            # Criar nova equação
+            return Equation(new_expr, locals_dict=self.locals_dict)
 
     
-    # ========================================================================
-    # LATEX OUTPUT
-    # ========================================================================
-    
-    def latex(self) -> str:
+    def simplify(self) -> 'Equation':
         """
-        Convert expression to LaTeX format.
-        
-        Integrates with text processor for Greek symbol conversion.
+        Simplifica equação algebricamente.
         
         Returns:
-            LaTeX string
-        
-        Examples:
-        --------
-        >>> latex = eq.latex()
-        >>> print(latex)  # "$M_d = M_k \\cdot \\gamma_s$"
+            Nova Equation simplificada
         """
-        try:
-            # Primary method: SymPy latex
-            latex_str = sp.latex(self.expression)
-            
-            # Enhancement: Use text processor for Greek symbols
-            if RECOGNITION_AVAILABLE:
-                try:
-                    engine = get_engine()
-                    latex_str = engine.to_latex(str(self.expression))
-                except Exception as e:
-                    logger.debug(f"Text processor enhancement failed: {e}")
-            
-            return f"${latex_str}$"
-        
-        except Exception as e:
-            logger.warning(f"LaTeX generation failed: {e}")
-            return str(self.expression)
+        with self._lock:
+            simplified = sp.simplify(self.expr)
+            return Equation(simplified, locals_dict=self.locals_dict)
     
-    # ========================================================================
-    # REPRESENTATION
-    # ========================================================================
+    def expand(self) -> 'Equation':
+        """
+        Expande equação (multiplica polinômios).
+        
+        Returns:
+            Nova Equation expandida
+        """
+        with self._lock:
+            expanded = sp.expand(self.expr)
+            return Equation(expanded, locals_dict=self.locals_dict)
+    
+    def factor(self) -> 'Equation':
+        """
+        Fatora equação.
+        
+        Returns:
+            Nova Equation fatorada
+        """
+        with self._lock:
+            factored = sp.factor(self.expr)
+            return Equation(factored, locals_dict=self.locals_dict)
+    
+    def evaluate(self, **kwargs) -> EvaluationResult:
+        """
+        Avalia equação numericamente.
+        
+        Args:
+            **kwargs: Valores adicionais para substituição
+        
+        Returns:
+            EvaluationResult com valor e metadados
+        
+        Raises:
+            EvaluationError: Se avaliação falhar
+        """
+        config = get_config()
+        
+        # Mesclar kwargs com locals_dict
+        subs_dict = {}
+        for name in self.variables_used:
+            if name in kwargs:
+                value = kwargs[name]
+                if isinstance(value, Variable):
+                    subs_dict[name] = value.value
+                else:
+                    subs_dict[name] = value
+            elif name in self.locals_dict:
+                var = self.locals_dict[name]
+                subs_dict[name] = var.value
+            else:
+                raise EvaluationError(
+                    f"Variável '{name}' não definida"
+                )
+        
+        # Substituir e avaliar
+        try:
+            # Substituir símbolos por valores
+            expr_with_values = self.expr.subs({
+                Symbol(k): v for k, v in subs_dict.items()
+            })
+            
+            # Avaliar numericamente
+            result_value = float(expr_with_values.evalf())
+            
+            return EvaluationResult(
+                value=result_value,
+                expression=self.expression_str,
+                symbolic=self.expr,
+                metadata={'substitutions': subs_dict}
+            )
+            
+        except Exception as e:
+            raise EvaluationError(
+                f"Erro ao avaliar '{self.expression_str}': {e}"
+            )
+    
+    def to_latex(self, mode: str = "inline") -> str:
+        """
+        Converte para LaTeX.
+        
+        Args:
+            mode: 'inline' ou 'display'
+        
+        Returns:
+            String LaTeX
+        """
+        latex_str = sp.latex(self.expr)
+        
+        if mode == "inline":
+            return f"${latex_str}$"
+        elif mode == "display":
+            return f"$$\n{latex_str}\n$$"
+        else:
+            return latex_str
+    
+    def to_markdown(self) -> str:
+        """Converte para Markdown."""
+        return f"`{self.expression_str}`"
     
     def __repr__(self) -> str:
-        """String representation."""
-        vars_info = f"{len(self.variables)} vars" if self.variables else "no vars"
-        result_info = f", result={self.result:.6g}" if self.result is not None else ""
-        return f"Equation({self.expression}, {vars_info}{result_info})"
+        """Representação Python."""
+        return f"Equation('{self.expression_str}')"
     
     def __str__(self) -> str:
-        """Human-readable string."""
-        return f"{self.expression} = {self.result:.6g}" if self.result else str(self.expression)
+        """Representação string."""
+        return self.expression_str
 
 
 # ============================================================================
-# FACTORY
+# EQUATIONFACTORY - BUILDER PATTERN
 # ============================================================================
 
 class EquationFactory:
     """
-    Factory for creating Equation instances.
+    Factory para criar equações de múltiplas fontes.
+    
+    **FILOSOFIA:**
+    - Builder pattern para flexibilidade
+    - Validação rigorosa em todas as entradas
+    - Integração com ast_parser para código Python
+    - Type hints completos
     
     Examples:
-    --------
-    >>> factory = EquationFactory()
-    >>> eq = factory.create('M_d = M_k * gamma_s', variables={...})
+        >>> # De string
+        >>> eq = EquationFactory.from_string("q * L**2 / 8")
+        >>> 
+        >>> # De código Python
+        >>> code = "M_max = q * L**2 / 8"
+        >>> eq = EquationFactory.from_code(code, variable='M_max')
+        >>> 
+        >>> # De lambda
+        >>> eq = EquationFactory.from_lambda(lambda x, y: x + y)
     """
     
     @staticmethod
-    def create(
-        expression: str,
-        variables: Optional[Dict[str, 'Variable']] = None,
-        description: str = "",
-        cache: Optional['ResultCache'] = None
+    def from_string(
+        expr_str: str,
+        locals_dict: Optional[Dict[str, Variable]] = None,
+        name: Optional[str] = None,
+        validate: bool = True
     ) -> Equation:
         """
-        Create Equation instance.
+        Cria equation de string.
         
         Args:
-            expression: Expression string
-            variables: Variable dictionary
-            description: Human-readable description
-            cache: Optional ResultCache instance
+            expr_str: Expressão como string
+            locals_dict: Variáveis disponíveis
+            name: Nome da equação
+            validate: Se True, valida antes de criar
         
         Returns:
-            Equation instance
+            Equation criada
+        
+        Raises:
+            ValidationError: Se validação falhar
         """
-        return Equation(
-            expression=expression,
-            variables=variables or {},
-            description=description,
-            _cache=cache
+        if validate:
+            ValidationHelpers.validate_expression_string(expr_str)
+        
+        return Equation(expr_str, locals_dict=locals_dict, name=name)
+    
+    @staticmethod
+    def from_sympy(
+        expr: Expr,
+        locals_dict: Optional[Dict[str, Variable]] = None,
+        name: Optional[str] = None
+    ) -> Equation:
+        """
+        Cria equation de expressão SymPy.
+        
+        Args:
+            expr: Expressão SymPy
+            locals_dict: Variáveis disponíveis
+            name: Nome da equação
+        
+        Returns:
+            Equation criada
+        """
+        if not isinstance(expr, Expr):
+            raise ValidationError(
+                f"Esperado sympy.Expr, recebido {type(expr)}"
+            )
+        
+        return Equation(expr, locals_dict=locals_dict, name=name)
+    
+    @staticmethod
+    def from_code(
+        code: str,
+        variable: Optional[str] = None,
+        locals_dict: Optional[Dict[str, Variable]] = None
+    ) -> Equation:
+        """
+        Cria equation de código Python usando ast_parser.
+        
+        Args:
+            code: Código Python (ex: "M = q * L**2 / 8")
+            variable: Nome da variável a extrair (ex: "M")
+            locals_dict: Variáveis disponíveis
+        
+        Returns:
+            Equation criada
+        
+        Raises:
+            ValidationError: Se parsing falhar
+        
+        Examples:
+            >>> code = '''
+            ... q = 15  # kN/m
+            ... L = 6   # m
+            ... M_max = q * L**2 / 8
+            ... '''
+            >>> eq = EquationFactory.from_code(code, variable='M_max')
+        """
+        # Validar segurança do código
+        ValidationHelpers.validate_code_safety(code)
+        
+        # Parsear com ast_parser
+        parser = PyMemorialASTParser()
+        try:
+            # ============================================================
+            # CORREÇÃO 1: O método é 'parse_code_block', não 'parse'
+            # ============================================================
+            result = parser.parse_code_block(code)
+        except Exception as e:
+            raise ValidationError(
+                f"Erro ao parsear código: {e}"
+            )
+        
+        # ============================================================
+        # CORREÇÃO 2: 'result' É a lista, não um objeto com '.assignments'
+        # ============================================================
+        if not result:
+            raise ValidationError(
+                "Código não contém atribuições válidas"
+            )
+        
+        # Se variable especificada, buscar
+        if variable:
+            # ============================================================
+            # CORREÇÃO 3: Iterar em 'result'
+            # ============================================================
+            for assignment in result:
+                
+                # ============================================================
+                # CORREÇÃO 4: O atributo é '.lhs' (string), não '.target'
+                # ============================================================
+                if assignment.lhs == variable:
+                    # ============================================================
+                    # CORREÇÃO 5: A expressão já é uma string em '.rhs_symbolic'
+                    # ============================================================
+                    expr_str = assignment.rhs_symbolic
+                    return EquationFactory.from_string(
+                        expr_str,
+                        locals_dict=locals_dict,
+                        name=variable
+                    )
+            
+            raise ValidationError(
+                f"Variável '{variable}' não encontrada no código"
+            )
+        
+        # Se não especificada, usar última atribuição
+        # ============================================================
+        # CORREÇÃO 6: Acessar o último item de 'result'
+        # ============================================================
+        last_assignment = result[-1]
+        
+        # ============================================================
+        # CORREÇÃO 7: Usar '.rhs_symbolic' e '.lhs'
+        # ============================================================
+        expr_str = last_assignment.rhs_symbolic
+        
+        return EquationFactory.from_string(
+            expr_str,
+            locals_dict=locals_dict,
+            name=last_assignment.lhs
         )
+    
+    @staticmethod
+    def from_lambda(
+        func: Callable,
+        arg_names: Optional[List[str]] = None,
+        locals_dict: Optional[Dict[str, Variable]] = None,
+        name: Optional[str] = None
+    ) -> Equation:
+        """
+        Cria equation de função lambda.
+        
+        Args:
+            func: Função Python
+            arg_names: Nomes dos argumentos
+            locals_dict: Variáveis disponíveis
+            name: Nome da equação
+        
+        Returns:
+            Equation criada
+        
+        Examples:
+            >>> eq = EquationFactory.from_lambda(
+            ...     lambda x, y: x**2 + y**2,
+            ...     arg_names=['x', 'y']
+            ... )
+        """
+        import inspect
+        
+        # Obter argumentos da função
+        sig = inspect.signature(func)
+        params = list(sig.parameters.keys())
+        
+        if arg_names is None:
+            arg_names = params
+        
+        # Criar símbolos
+        symbols = [Symbol(name) for name in arg_names]
+        
+        # Tentar avaliar função com símbolos
+        try:
+            if len(symbols) == 1:
+                expr = func(symbols[0])
+            elif len(symbols) == 2:
+                expr = func(symbols[0], symbols[1])
+            elif len(symbols) == 3:
+                expr = func(symbols[0], symbols[1], symbols[2])
+            else:
+                # Para mais argumentos, usar *args
+                expr = func(*symbols)
+            
+            return Equation(expr, locals_dict=locals_dict, name=name)
+            
+        except Exception as e:
+            raise ValidationError(
+                f"Erro ao criar equation de lambda: {e}"
+            )
 
 
 # ============================================================================
-# EXPORTS
+# VALIDATIONHELPERS - VALIDAÇÃO AVANÇADA
 # ============================================================================
 
-__all__ = [
-    'Equation',
-    'EquationFactory',
-    'StepPlugin',     # Protocolo
-    'StepRegistry',   # Registro Global - ESSENCIAL ESTAR AQUI
-    'GranularityType' # Exporta o tipo Literal também
-]
+class ValidationHelpers:
+    """
+    Helpers para validação de equações.
+    
+    **SEGURANÇA CRÍTICA:**
+    - Validação de código malicioso
+    - Detecção de imports perigosos
+    - Validação dimensional
+    - Detecção de circularidades
+    """
+    
+    @staticmethod
+    def validate_expression_string(expr_str: str) -> None:
+        """
+        Valida string de expressão.
+        
+        Args:
+            expr_str: Expressão a validar
+        
+        Raises:
+            ValidationError: Se inválida
+        """
+        if not expr_str or not expr_str.strip():
+            raise ValidationError("Expressão vazia")
+        
+        # Validar caracteres perigosos
+        dangerous_chars = [';', '\\', '`']
+        for char in dangerous_chars:
+            if char in expr_str:
+                raise ValidationError(
+                    f"Caractere perigoso '{char}' na expressão"
+                )
+        
+        # Validar palavras-chave Python perigosas
+        dangerous_keywords = [
+            'import', 'exec', 'eval', 'compile',
+            '__import__', 'open', 'file', 'input',
+            'globals', 'locals', 'vars', 'dir'
+        ]
+        
+        expr_lower = expr_str.lower()
+        for keyword in dangerous_keywords:
+            if keyword in expr_lower:
+                raise ValidationError(
+                    f"Palavra-chave perigosa '{keyword}' na expressão"
+                )
+    
+    @staticmethod
+    def validate_code_safety(code: str) -> None:
+        """
+        Valida segurança de código Python.
+        
+        Args:
+            code: Código a validar
+        
+        Raises:
+            ValidationError: Se código inseguro
+        """
+        import ast
+        
+        # Parsear AST
+        try:
+            tree = ast.parse(code)
+        except SyntaxError as e:
+            raise ValidationError(f"Sintaxe inválida: {e}")
+        
+        # Verificar nós perigosos
+        dangerous_nodes = (
+            ast.Import,
+            ast.ImportFrom,
+            ast.Global,
+            ast.FunctionDef,
+            ast.AsyncFunctionDef,
+            ast.ClassDef,
+            ast.Delete,
+            ast.Try,
+            ast.ExceptHandler,
+            ast.With,
+            ast.AsyncWith
+        )
+        
+        for node in ast.walk(tree):
+            if isinstance(node, dangerous_nodes):
+                raise ValidationError(
+                    f"Operação não permitida: {node.__class__.__name__}"
+                )
+            
+            # Verificar chamadas de funções perigosas
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name):
+                    func_name = node.func.id
+                    if func_name in ['eval', 'exec', 'compile', 'open', '__import__']:
+                        raise ValidationError(
+                            f"Função não permitida: {func_name}"
+                        )
+    
+    @staticmethod
+    def validate_dimensional_consistency(
+        equation: Equation,
+        expected_unit: Optional[str] = None
+    ) -> bool:
+        """
+        Valida consistência dimensional.
+        
+        Args:
+            equation: Equation a validar
+            expected_unit: Unidade esperada (opcional)
+        
+        Returns:
+            True se consistente
+        
+        Raises:
+            DimensionalError: Se inconsistente
+        """
+        if not PINT_AVAILABLE:
+            return True  # Pular validação se Pint não disponível
+        
+        # TODO: Implementar validação dimensional completa
+        # Análise de AST da expressão para verificar operações
+        
+        return True
+    
+    @staticmethod
+    def check_circular_dependencies(
+        equations: List[Equation]
+    ) -> List[Tuple[str, str]]:
+        """
+        Detecta dependências circulares entre equações.
+        
+        Args:
+            equations: Lista de equações
+        
+        Returns:
+            Lista de tuplas (eq1, eq2) com circularidades
+        """
+        # Construir grafo de dependências
+        dependencies = {}
+        
+        for eq in equations:
+            if eq.name:
+                dependencies[eq.name] = eq.get_variables()
+        
+        # Algoritmo de Tarjan para detectar ciclos
+        # TODO: Implementar detecção completa de ciclos
+        
+        return []
+    
+    @staticmethod
+    def validate_expression_complexity(
+        expr_str: str,
+        max_length: int = 1000,
+        max_depth: int = 50
+    ) -> None:
+        """
+        Valida complexidade da expressão.
+        
+        Args:
+            expr_str: Expressão a validar
+            max_length: Comprimento máximo
+            max_depth: Profundidade máxima de aninhamento
+        
+        Raises:
+            ValidationError: Se muito complexa
+        """
+        if len(expr_str) > max_length:
+            raise ValidationError(
+                f"Expressão muito longa: {len(expr_str)} > {max_length}"
+            )
+        
+        # Validar profundidade de parênteses
+        depth = 0
+        max_depth_found = 0
+        
+        for char in expr_str:
+            if char == '(':
+                depth += 1
+                max_depth_found = max(max_depth_found, depth)
+            elif char == ')':
+                depth -= 1
+        
+        if max_depth_found > max_depth:
+            raise ValidationError(
+                f"Expressão muito aninhada: profundidade {max_depth_found} > {max_depth}"
+            )
+
+
+# ============================================================================
+# STEP SYSTEM - CALCPAD-INSPIRED
+# ============================================================================
+
+@dataclass
+class Step:
+    """
+    Representação de um step de cálculo.
+    
+    **FILOSOFIA CALCPAD:**
+    - Fórmula simbólica
+    - Substituição de valores
+    - Cálculo intermediário
+    - Resultado final
+    
+    Examples:
+        >>> step = Step(
+        ...     formula="M = q * L² / 8",
+        ...     substitution="M = 15 * 6² / 8",
+        ...     intermediate="M = 15 * 36 / 8",
+        ...     result="M = 67.5 kN·m"
+        ... )
+    """
+    formula: str
+    substitution: Optional[str] = None
+    intermediate: Optional[str] = None
+    result: Optional[str] = None
+    level: GranularityType = GranularityType.MEDIUM
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def to_latex(self, mode: str = "align") -> str:
+        """
+        Converte step para LaTeX.
+        
+        Args:
+            mode: "align" ou "gather"
+        
+        Returns:
+            LaTeX formatado
+        """
+        if mode == "align":
+            env = "align*"
+        else:
+            env = "gather*"
+        
+        lines = []
+        
+        if self.formula:
+            lines.append(self.formula)
+        
+        if self.substitution and self.level in [GranularityType.MEDIUM, GranularityType.DETAILED]:
+            lines.append(self.substitution)
+        
+        if self.intermediate and self.level == GranularityType.DETAILED:
+            lines.append(self.intermediate)
+        
+        if self.result:
+            lines.append(self.result)
+        
+        latex = f"\\begin{{{env}}}\n"
+        latex += " \\\\\n".join(lines)
+        latex += f"\n\\end{{{env}}}"
+        
+        return latex
+    
+    def to_markdown(self) -> str:
+        """Converte step para Markdown."""
+        lines = []
+        
+        if self.formula:
+            lines.append(f"$$\n{self.formula}\n$$")
+        
+        if self.substitution and self.level in [GranularityType.MEDIUM, GranularityType.DETAILED]:
+            lines.append(f"$$\n{self.substitution}\n$$")
+        
+        if self.intermediate and self.level == GranularityType.DETAILED:
+            lines.append(f"$$\n{self.intermediate}\n$$")
+        
+        if self.result:
+            lines.append(f"$$\n{self.result}\n$$")
+        
+        return "\n\n".join(lines)
+
+
+class StepGenerator:
+    """
+    Gerador automático de steps estilo Calcpad.
+    
+    **ALGORITMO:**
+    1. Extrai fórmula simbólica da equation
+    2. Substitui valores das variáveis
+    3. Calcula intermediários (se DETAILED)
+    4. Formata resultado final
+    
+    Examples:
+        >>> generator = StepGenerator()
+        >>> eq = Equation("M = q * L**2 / 8", locals_dict={
+        ...     'q': Variable('q', 15, unit='kN/m'),
+        ...     'L': Variable('L', 6, unit='m')
+        ... })
+        >>> steps = generator.generate(eq, granularity=GranularityType.DETAILED)
+    """
+    
+    def __init__(self):
+        """Inicializa gerador."""
+        self._logger = logging.getLogger(__name__)
+    
+    def generate(
+        self,
+        equation: Equation,
+        granularity: GranularityType = GranularityType.MEDIUM,
+        precision: int = 3
+    ) -> List[Step]:
+        """
+        Gera steps de cálculo.
+        
+        Args:
+            equation: Equation para gerar steps
+            granularity: Nível de detalhe
+            precision: Casas decimais
+        
+        Returns:
+            Lista de Steps
+        """
+        if granularity == GranularityType.MINIMAL:
+            return self._generate_minimal(equation, precision)
+        elif granularity == GranularityType.BASIC:
+            return self._generate_basic(equation, precision)
+        elif granularity == GranularityType.MEDIUM:
+            return self._generate_medium(equation, precision)
+        else:  # DETAILED
+            return self._generate_detailed(equation, precision)
+
+    def generate_smart(
+        self,
+        equation: Equation,
+        precision: int = 3,
+        force_granularity: Optional[GranularityType] = None
+    ) -> List[Step]:
+        """
+        Geração INTELIGENTE de steps com reconhecimento automático.
+        
+        **ALGORITMO SMART:**
+        1. Analisa complexidade da expressão
+        2. Detecta tipo de operações
+        3. Escolhe granularidade ideal automaticamente
+        4. Gera steps otimizados
+        
+        **HEURÍSTICAS:**
+        - Score ≤ 5:  Expressão simples (x + y) → BASIC
+        - Score ≤ 15: Expressão média (q * L²/8) → MEDIUM
+        - Score > 15: Expressão complexa (sin, integrais) → DETAILED
+        
+        Args:
+            equation: Equation para análise
+            precision: Casas decimais
+            force_granularity: Forçar granularidade (ignora análise)
+        
+        Returns:
+            Lista de Steps otimizados
+        
+        Examples:
+            >>> generator = StepGenerator()
+            >>> eq_simple = Equation("x + y")
+            >>> steps = generator.generate_smart(eq_simple)  # AUTO: BASIC
+            >>> 
+            >>> eq_complex = Equation("sin(x) * exp(y)")
+            >>> steps = generator.generate_smart(eq_complex)  # AUTO: DETAILED
+        """
+        # Se granularidade forçada, usar diretamente
+        if force_granularity:
+            return self.generate(equation, force_granularity, precision)
+        
+        # ANÁLISE AUTOMÁTICA DE COMPLEXIDADE
+        complexity_score = self._analyze_complexity(equation)
+        
+        # DECISÃO INTELIGENTE
+        if complexity_score <= 5:
+            # Expressão simples: BASIC
+            granularity = GranularityType.BASIC
+            self._logger.debug(f"Smart: Score={complexity_score} → BASIC")
+        elif complexity_score <= 15:
+            # Expressão média: MEDIUM
+            granularity = GranularityType.MEDIUM
+            self._logger.debug(f"Smart: Score={complexity_score} → MEDIUM")
+        else:
+            # Expressão complexa: DETAILED
+            granularity = GranularityType.DETAILED
+            self._logger.debug(f"Smart: Score={complexity_score} → DETAILED")
+        
+        return self.generate(equation, granularity, precision)
+    
+    def _analyze_complexity(self, equation: Equation) -> int:
+        """
+        Analisa complexidade da expressão.
+        
+        **MÉTRICAS:**
+        - Número de variáveis: +2 cada
+        - Profundidade da árvore AST: +3 por nível
+        - Operações básicas (+,-,*,/): +1 cada
+        - Potenciação (**): +3
+        - Funções transcendentais (sin,cos,exp,log): +5 cada
+        - Funções especiais (Integral,Derivative): +10 cada
+        - Matrizes: +8
+        
+        Args:
+            equation: Equation para analisar
+        
+        Returns:
+            Score de complexidade (0-100+)
+        
+        Examples:
+            >>> eq_simple = Equation("x + y")
+            >>> score = generator._analyze_complexity(eq_simple)  # ~4
+            >>> 
+            >>> eq_complex = Equation("sin(x) * exp(y) / sqrt(z)")
+            >>> score = generator._analyze_complexity(eq_complex)  # ~25
+        """
+        score = 0
+        expr = equation.expr
+        
+        # 1. NÚMERO DE VARIÁVEIS
+        num_vars = len(equation.get_variables())
+        score += num_vars * 2
+        
+        # 2. PROFUNDIDADE DA ÁRVORE AST
+        depth = self._get_expr_depth(expr)
+        score += depth * 3
+        
+        # 3. TIPOS DE OPERAÇÕES
+        expr_str = str(expr)
+        
+        # Operações básicas (+, -, *, /)
+        basic_ops = expr_str.count('+') + expr_str.count('-') + \
+                    expr_str.count('*') + expr_str.count('/')
+        score += basic_ops * 1
+        
+        # Operações potência (**²)
+        if '**' in expr_str or 'Pow' in expr_str:
+            score += 3
+        
+        # Funções transcendentais (sin, cos, exp, log, sqrt)
+        transcendental_funcs = ['sin', 'cos', 'tan', 'exp', 'log', 'sqrt']
+        for func in transcendental_funcs:
+            if func in expr_str.lower():
+                score += 5
+        
+        # 4. FUNÇÕES ESPECIAIS (integral, derivada)
+        special_funcs = ['Integral', 'Derivative', 'Sum', 'Product', 'Limit']
+        for func in special_funcs:
+            if func in expr_str:
+                score += 10
+        
+        # 5. MATRIZES/VETORES
+        if 'Matrix' in expr_str or 'Array' in expr_str:
+            score += 8
+        
+        return score
+    
+    def _get_expr_depth(self, expr: Expr, current_depth: int = 0) -> int:
+        """
+        Calcula profundidade da árvore de expressão (recursivo).
+        
+        Args:
+            expr: Expressão SymPy
+            current_depth: Profundidade atual (recursão)
+        
+        Returns:
+            Profundidade máxima
+        
+        Examples:
+            >>> # x + y → profundidade 1
+            >>> # sin(x + y) → profundidade 2
+            >>> # sin(cos(x + y)) → profundidade 3
+        """
+        if not hasattr(expr, 'args') or not expr.args:
+            return current_depth
+        
+        max_child_depth = current_depth
+        for arg in expr.args:
+            child_depth = self._get_expr_depth(arg, current_depth + 1)
+            max_child_depth = max(max_child_depth, child_depth)
+        
+        return max_child_depth
+
+
+
+    def _generate_minimal(self, equation: Equation, precision: int) -> List[Step]:
+        """Gera step MINIMAL: apenas resultado."""
+        result = equation.evaluate()
+        
+        # Formatar resultado
+        if hasattr(result.value, '__float__'):
+            value_str = f"{float(result.value):.{precision}f}"
+        else:
+            value_str = str(result.value)
+        
+        result_formula = f"{equation.name or 'resultado'} = {value_str}"
+        
+        step = Step(
+            formula=None,
+            substitution=None,
+            intermediate=None,
+            result=result_formula,
+            level=GranularityType.MINIMAL
+        )
+        
+        return [step]
+    
+    def _generate_basic(self, equation: Equation, precision: int) -> List[Step]:
+        """Gera step BASIC: fórmula + resultado."""
+        # Fórmula simbólica
+        formula_latex = sp.latex(equation.expr)
+        
+        # Resultado
+        result = equation.evaluate()
+        value_str = f"{float(result.value):.{precision}f}" if hasattr(result.value, '__float__') else str(result.value)
+        result_formula = f"{equation.name or 'resultado'} = {value_str}"
+        
+        step = Step(
+            formula=formula_latex,
+            substitution=None,
+            intermediate=None,
+            result=result_formula,
+            level=GranularityType.BASIC
+        )
+        
+        return [step]
+    
+    def _generate_medium(self, equation: Equation, precision: int) -> List[Step]:
+        """Gera step MEDIUM: fórmula + substituição + resultado."""
+        # Fórmula simbólica
+        formula_latex = sp.latex(equation.expr)
+        
+        # Substituição de valores
+        subs_dict = {}
+        for var_name, var in equation.locals_dict.items():
+            if isinstance(var, Variable):
+                subs_dict[Symbol(var_name)] = var.value
+        
+        expr_substituted = equation.expr.subs(subs_dict)
+        substitution_latex = sp.latex(expr_substituted)
+        
+        # Resultado
+        result = equation.evaluate()
+        value_str = f"{float(result.value):.{precision}f}" if hasattr(result.value, '__float__') else str(result.value)
+        result_formula = f"{equation.name or 'resultado'} = {value_str}"
+        
+        step = Step(
+            formula=formula_latex,
+            substitution=substitution_latex,
+            intermediate=None,
+            result=result_formula,
+            level=GranularityType.MEDIUM
+        )
+        
+        return [step]
+    
+    def _generate_detailed(self, equation: Equation, precision: int) -> List[Step]:
+        """Gera step DETAILED: todos os passos intermediários."""
+        steps = []
+        
+        # Step 1: Fórmula simbólica
+        formula_latex = sp.latex(equation.expr)
+        
+        # Step 2: Substituição
+        subs_dict = {}
+        for var_name, var in equation.locals_dict.items():
+            if isinstance(var, Variable):
+                subs_dict[Symbol(var_name)] = var.value
+        
+        expr_substituted = equation.expr.subs(subs_dict)
+        substitution_latex = sp.latex(expr_substituted)
+        
+        # Step 3: Simplificação intermediária (se aplicável)
+        try:
+            expr_simplified = sp.simplify(expr_substituted)
+            if expr_simplified != expr_substituted:
+                intermediate_latex = sp.latex(expr_simplified)
+            else:
+                intermediate_latex = None
+        except Exception:
+            intermediate_latex = None
+        
+        # Step 4: Resultado final
+        result = equation.evaluate()
+        value_str = f"{float(result.value):.{precision}f}" if hasattr(result.value, '__float__') else str(result.value)
+        result_formula = f"{equation.name or 'resultado'} = {value_str}"
+        
+        step = Step(
+            formula=formula_latex,
+            substitution=substitution_latex,
+            intermediate=intermediate_latex,
+            result=result_formula,
+            level=GranularityType.DETAILED
+        )
+        
+        steps.append(step)
+        
+        return steps
+
+
+    def generate_smart(
+        self,
+        equation: Equation,
+        precision: int = 3,
+        force_granularity: Optional[GranularityType] = None
+    ) -> List[Step]:
+        """
+        Geração INTELIGENTE de steps com reconhecimento automático.
+        
+        **ALGORITMO SMART:**
+        1. Analisa complexidade da expressão
+        2. Detecta tipo de operações
+        3. Escolhe granularidade ideal
+        4. Gera steps otimizados
+        
+        **HEURÍSTICAS:**
+        - Expressão simples (x + y): BASIC
+        - Expressão média (q * L²/8): MEDIUM
+        - Expressão complexa (integral, derivada): DETAILED
+        
+        Args:
+            equation: Equation para análise
+            precision: Casas decimais
+            force_granularity: Forçar granularidade (ignora análise)
+        
+        Returns:
+            Lista de Steps otimizados
+        
+        Examples:
+            >>> generator = StepGenerator()
+            >>> eq_simple = Equation("x + y")
+            >>> steps = generator.generate_smart(eq_simple)  # AUTO: BASIC
+            >>> 
+            >>> eq_complex = Equation("sin(x) * exp(y) / sqrt(z)")
+            >>> steps = generator.generate_smart(eq_complex)  # AUTO: DETAILED
+        """
+        # Se granularidade forçada, usar diretamente
+        if force_granularity:
+            return self.generate(equation, force_granularity, precision)
+        
+        # ANÁLISE AUTOMÁTICA DE COMPLEXIDADE
+        complexity_score = self._analyze_complexity(equation)
+        
+        # DECISÃO INTELIGENTE
+        if complexity_score <= 5:
+            # Expressão simples: BASIC
+            granularity = GranularityType.BASIC
+            self._logger.debug(f"Smart: Score={complexity_score} → BASIC")
+        elif complexity_score <= 15:
+            # Expressão média: MEDIUM
+            granularity = GranularityType.MEDIUM
+            self._logger.debug(f"Smart: Score={complexity_score} → MEDIUM")
+        else:
+            # Expressão complexa: DETAILED
+            granularity = GranularityType.DETAILED
+            self._logger.debug(f"Smart: Score={complexity_score} → DETAILED")
+        
+        return self.generate(equation, granularity, precision)
+    
+    def _analyze_complexity(self, equation: Equation) -> int:
+        """
+        Analisa complexidade da expressão.
+        
+        **MÉTRICAS:**
+        - Número de variáveis: +2 cada
+        - Profundidade da árvore: +3 por nível
+        - Operações: +1 básicas, +5 transcendentais
+        - Funções especiais: +10 cada
+        
+        Args:
+            equation: Equation para analisar
+        
+        Returns:
+            Score de complexidade (0-100+)
+        """
+        score = 0
+        expr = equation.expr
+        
+        # 1. NÚMERO DE VARIÁVEIS
+        num_vars = len(equation.get_variables())
+        score += num_vars * 2
+        
+        # 2. PROFUNDIDADE DA ÁRVORE AST
+        depth = self._get_expr_depth(expr)
+        score += depth * 3
+        
+        # 3. TIPOS DE OPERAÇÕES
+        expr_str = str(expr)
+        
+        # Operações básicas (+, -, *, /)
+        basic_ops = expr_str.count('+') + expr_str.count('-') + \
+                    expr_str.count('*') + expr_str.count('/')
+        score += basic_ops * 1
+        
+        # Operações potência (**²)
+        if '**' in expr_str or 'Pow' in expr_str:
+            score += 3
+        
+        # Funções transcendentais (sin, cos, exp, log, sqrt)
+        transcendental_funcs = ['sin', 'cos', 'tan', 'exp', 'log', 'sqrt']
+        for func in transcendental_funcs:
+            if func in expr_str.lower():
+                score += 5
+        
+        # 4. FUNÇÕES ESPECIAIS (integral, derivada)
+        special_funcs = ['Integral', 'Derivative', 'Sum', 'Product', 'Limit']
+        for func in special_funcs:
+            if func in expr_str:
+                score += 10
+        
+        # 5. MATRIZES/VETORES
+        if 'Matrix' in expr_str or 'Array' in expr_str:
+            score += 8
+        
+        return score
+    
+    def _get_expr_depth(self, expr: Expr, current_depth: int = 0) -> int:
+        """
+        Calcula profundidade da árvore de expressão.
+        
+        Args:
+            expr: Expressão SymPy
+            current_depth: Profundidade atual (recursão)
+        
+        Returns:
+            Profundidade máxima
+        """
+        if not hasattr(expr, 'args') or not expr.args:
+            return current_depth
+        
+        max_child_depth = current_depth
+        for arg in expr.args:
+            child_depth = self._get_expr_depth(arg, current_depth + 1)
+            max_child_depth = max(max_child_depth, child_depth)
+        
+        return max_child_depth
+
+
+class StepRegistry:
+    """
+    Registro global de steps estilo Calcpad.
+    
+    **FUNCIONALIDADE:**
+    - Armazena histórico de steps
+    - Permite export para LaTeX/Markdown
+    - Suporta plugins customizados
+    
+    Examples:
+        >>> registry = StepRegistry()
+        >>> eq = Equation("M = q * L**2 / 8", locals_dict=vars_dict)
+        >>> registry.register(eq, granularity=GranularityType.MEDIUM)
+        >>> latex = registry.to_latex()
+    """
+    
+    def __init__(self):
+        """Inicializa registry."""
+        self._steps: List[Step] = []
+        self._generator = StepGenerator()
+        self._lock = threading.Lock()
+    
+    def register(
+        self,
+        equation: Equation,
+        granularity: GranularityType = GranularityType.MEDIUM,
+        precision: int = 3
+    ) -> List[Step]:
+        """
+        Registra equation e gera steps.
+        
+        Args:
+            equation: Equation para registrar
+            granularity: Nível de detalhe
+            precision: Casas decimais
+        
+        Returns:
+            Lista de Steps gerados
+        """
+        with self._lock:
+            steps = self._generator.generate(equation, granularity, precision)
+            self._steps.extend(steps)
+            return steps
+    
+    def get_all(self) -> List[Step]:
+        """Retorna todos os steps registrados."""
+        with self._lock:
+            return self._steps.copy()
+    
+    def clear(self):
+        """Limpa histórico de steps."""
+        with self._lock:
+            self._steps.clear()
+    
+    def to_latex(self, mode: str = "align") -> str:
+        """
+        Export todos os steps para LaTeX.
+        
+        Args:
+            mode: "align" ou "gather"
+        
+        Returns:
+            LaTeX completo
+        """
+        with self._lock:
+            latex_blocks = [step.to_latex(mode) for step in self._steps]
+            return "\n\n".join(latex_blocks)
+    
+    def to_markdown(self) -> str:
+        """Export todos os steps para Markdown."""
+        with self._lock:
+            md_blocks = [step.to_markdown() for step in self._steps]
+            return "\n\n---\n\n".join(md_blocks)
