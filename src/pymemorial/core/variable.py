@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, Any, Union, List
 from datetime import datetime
-
+from pymemorial.core.value_formatter import safe_format
 
 
 
@@ -111,7 +111,44 @@ class Variable:
     # =========================================================================
     # REPRESENTAÇÃO (PARTE 1)
     # =========================================================================
-    
+
+    def _format_value_smart(self, value: float, default_precision: int = 2) -> str:
+        r"""
+        Formata valor de forma inteligente e ROBUSTA contra zeros falsos.
+        """
+        # ✅ PROTEÇÃO CRÍTICA: Valores muito pequenos NUNCA viram zero!
+        if isinstance(value, float):
+            if abs(value) < 0.001 and value != 0:
+                # Se valor é muito pequeno, forçar notação científica
+                # com pelo menos 2 algarismos significativos
+                formatted = f"{value:.2e}"
+                # Limpar formatação
+                formatted = formatted.replace('e-0', r' \times 10^{-').replace('e+0', r' \times 10^{')
+                formatted = formatted + '}' if r'\times' in formatted else formatted
+                return formatted
+        
+        # Resto do código original...
+        if abs(value) < 1e-10:
+            return "0"
+        
+        magnitude = np.floor(np.log10(abs(value)))
+        
+        if abs(value) < 0.01:
+            exp = int(np.floor(np.log10(abs(value))))
+            mantissa = value / (10 ** exp)
+            return f"{mantissa:.{default_precision}f} \\times 10^{{{exp}}}"
+        
+        elif abs(value) >= 1000:
+            return f"{value:,.{default_precision}f}".replace(",", "\\,")
+        
+        else:
+            if magnitude >= 0:
+                decimals = default_precision
+            else:
+                decimals = default_precision + int(abs(magnitude))
+            return f"{value:.{decimals}f}"
+
+
     def __str__(self) -> str:
         """
         String legível para humanos.
@@ -350,7 +387,48 @@ class Variable:
     # =========================================================================
     # CONVERSÃO LATEX (PARTE 3)
     # =========================================================================
-    
+    def to_memorial_step(
+        self,
+        include_unit: bool = True,
+        show_description: bool = True
+    ) -> str:
+        """
+        Gera linha de memorial: nome_latex = valor unidade
+        
+        Returns:
+            String LaTeX formatada
+            
+        Examples:
+            >>> v = Variable('f_ck', 25, unit='MPa', description='Resistência característica')
+            >>> print(v.to_memorial_step())
+            f_{ck} = 25.000\\, \\text{MPa} \\quad \\text{(Resistência característica)}
+        """
+        # Obter LaTeX do nome
+        latex_name = self.to_latex()
+        
+        # Formatar valor
+        if self.value is not None:
+            if isinstance(self.value, float):
+                value_str = f"{self.value:.3f}"
+            else:
+                value_str = str(self.value)
+        else:
+            value_str = "?"
+        
+        # Montar expressão
+        latex_line = f"{latex_name} = {value_str}"
+        
+        if include_unit and self.unit:
+            latex_line += f"\\, \\text{{{self.unit}}}"
+        
+        # Adicionar descrição como comentário LaTeX
+        if show_description and self.description:
+            latex_line += f" \\quad \\text{{({self.description})}}"
+        
+        return latex_line
+
+
+
     def to_latex(self, include_unit: bool = False) -> str:
         """
         Converte nome da variável para LaTeX.

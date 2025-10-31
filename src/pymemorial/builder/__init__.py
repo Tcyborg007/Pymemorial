@@ -1,20 +1,47 @@
 # src/pymemorial/builder/__init__.py
+
 """
-API pública do builder (v2.0: Enhanced Exports + Bundle).
+PyMemorial Builder - High-Level API (v3.0)
 
-Exports legacy + novos (validate_chain). Bundle factory para quick setup.
-Fallbacks robustos. Compatível 100%.
+Arquitetura em 3 níveis:
+    NÍVEL 1 (HIGH-LEVEL): MatrixMemorial - API simplificada para usuários
+    NÍVEL 2 (LEGACY): MemorialBuilder - API detalhada existente
+    NÍVEL 3 (CORE): Matrix, Variable - Engine de baixo nível
 
-Example Bundle:
-    bundle = get_builder_bundle()
-    builder = bundle['builder']
-    builder.add_variable("M_k", 150).add_section("Análise")
+Examples:
+    >>> # HIGH-LEVEL API (NOVO - 3 linhas!)
+    >>> from pymemorial.builder import MatrixMemorial
+    >>> m = MatrixMemorial("Edifício Residencial", "Eng. João Silva")
+    >>> m.add_beam("viga", L=6, E=21e6, I=0.0008)
+    >>> m.generate("portico.md")
+    
+    >>> # LEGACY API (compatibilidade total)
+    >>> from pymemorial.builder import MemorialBuilder
+    >>> builder = MemorialBuilder("Memorial de Cálculo")
+    >>> builder.add_section("Introdução")
 """
 
 import logging
 from typing import Dict, Any
 
-# Legacy imports with fallbacks
+# ============================================================================
+# NÍVEL 1: HIGH-LEVEL API (NOVO)
+# ============================================================================
+
+try:
+    from .matrix_memorial import (
+        MatrixMemorial,
+        MemorialConfig
+    )
+except ImportError as e:
+    logging.warning(f"MatrixMemorial import falhou: {e}. High-level API não disponível.")
+    MatrixMemorial = MemorialConfig = None
+
+
+# ============================================================================
+# NÍVEL 2: LEGACY BUILDERS (COMPATIBILIDADE)
+# ============================================================================
+
 try:
     from .memorial import MemorialBuilder, MemorialMetadata
 except ImportError as e:
@@ -53,10 +80,13 @@ except ImportError as e:
     MemorialValidator = ValidationError = ValidationReport = None
 
 
-# NEW: Bundle Factory (one-stop setup)
+# ============================================================================
+# BUNDLE FACTORIES (QUICK SETUP)
+# ============================================================================
+
 def get_builder_bundle(nlp: bool = False) -> Dict[str, Any]:
     """
-    Bundle completo de ferramentas builder.
+    Bundle completo de ferramentas builder (LEGACY).
     
     Args:
         nlp: Habilita NLP (não implementado no MVP, ignorado)
@@ -81,21 +111,131 @@ def get_builder_bundle(nlp: bool = False) -> Dict[str, Any]:
     }
 
 
-__all__ = [
-    # Legacy
-    "MemorialBuilder",
-    "MemorialMetadata",
-    "Section",
-    "ContentBlock",
-    "ContentType",
-    "create_text_block",
-    "create_equation_block",
-    "create_figure_block",
-    "create_table_block",
-    "MemorialValidator",
-    "ValidationError",
-    "ValidationReport",
+def get_matrix_memorial(project: str = None, author: str = None, **kwargs) -> 'MatrixMemorial':
+    """
+    Factory para criação rápida de MatrixMemorial (HIGH-LEVEL API).
     
-    # Enhanced
-    "get_builder_bundle",
+    Args:
+        project: Nome do projeto (opcional)
+        author: Responsável técnico (opcional)
+        **kwargs: Configurações adicionais (norm, precision, etc)
+    
+    Returns:
+        MatrixMemorial: Instância configurada
+    
+    Example:
+        >>> m = get_matrix_memorial("Ponte Metálica", "Eng. Maria Santos")
+        >>> m.add_beam("principal", L=12, E=200e6, I=0.002)
+        >>> m.generate("ponte.md")
+    
+    Raises:
+        ImportError: Se MatrixMemorial não estiver disponível
+    """
+    if MatrixMemorial is None:
+        raise ImportError(
+            "MatrixMemorial não disponível. "
+            "Verifique se matrix_memorial.py está no diretório builder/"
+        )
+    
+    project = project or "Projeto Estrutural"
+    author = author or "Engenheiro Responsável"
+    
+    return MatrixMemorial(project, author, **kwargs)
+
+
+# ============================================================================
+# EXPORTS PÚBLICOS
+# ============================================================================
+
+__all__ = [
+    # ========================================================================
+    # HIGH-LEVEL API (v3.0) - RECOMENDADO PARA NOVOS PROJETOS
+    # ========================================================================
+    "MatrixMemorial",           # Builder simplificado para análise estrutural
+    "MemorialConfig",           # Configuração global do memorial
+    "get_matrix_memorial",      # Factory para MatrixMemorial
+    
+    # ========================================================================
+    # LEGACY API (v2.0) - COMPATIBILIDADE RETROATIVA
+    # ========================================================================
+    "MemorialBuilder",          # Builder detalhado existente
+    "MemorialMetadata",         # Metadados do memorial
+    "Section",                  # Seções do memorial
+    "ContentBlock",             # Blocos de conteúdo
+    "ContentType",              # Tipos de conteúdo
+    "create_text_block",        # Helper: bloco de texto
+    "create_equation_block",    # Helper: bloco de equação
+    "create_figure_block",      # Helper: bloco de figura
+    "create_table_block",       # Helper: bloco de tabela
+    "MemorialValidator",        # Validador de memoriais
+    "ValidationError",          # Erro de validação
+    "ValidationReport",         # Relatório de validação
+    
+    # ========================================================================
+    # BUNDLE FACTORIES
+    # ========================================================================
+    "get_builder_bundle",       # Bundle de ferramentas legacy
 ]
+
+
+# ============================================================================
+# VERSÃO E METADADOS
+# ============================================================================
+
+__version__ = "3.0.0"
+__author__ = "PyMemorial Team"
+__description__ = "High-Level API para geração automatizada de memoriais de cálculo estrutural"
+
+
+# ============================================================================
+# HELPER: Detectar módulos disponíveis
+# ============================================================================
+
+def get_available_modules() -> Dict[str, bool]:
+    """
+    Retorna status de disponibilidade dos módulos.
+    
+    Returns:
+        Dict com True/False para cada módulo
+    
+    Example:
+        >>> from pymemorial.builder import get_available_modules
+        >>> status = get_available_modules()
+        >>> print(status)
+        {
+            'matrix_memorial': True,
+            'memorial_builder': True,
+            'validators': True,
+            ...
+        }
+    """
+    return {
+        # High-Level
+        'matrix_memorial': MatrixMemorial is not None,
+        'memorial_config': MemorialConfig is not None,
+        
+        # Legacy
+        'memorial_builder': MemorialBuilder is not None,
+        'memorial_metadata': MemorialMetadata is not None,
+        'section': Section is not None,
+        'content_block': ContentBlock is not None,
+        'validators': MemorialValidator is not None,
+    }
+
+
+# ============================================================================
+# LOG DE INICIALIZAÇÃO
+# ============================================================================
+
+logger = logging.getLogger(__name__)
+logger.info(f"PyMemorial Builder v{__version__} carregado")
+
+# Log de módulos disponíveis
+modules_status = get_available_modules()
+available = [k for k, v in modules_status.items() if v]
+unavailable = [k for k, v in modules_status.items() if not v]
+
+if available:
+    logger.info(f"Módulos disponíveis: {', '.join(available)}")
+if unavailable:
+    logger.warning(f"Módulos não disponíveis: {', '.join(unavailable)}")

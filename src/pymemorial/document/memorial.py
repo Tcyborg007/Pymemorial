@@ -12,6 +12,9 @@ Version: 2.0.0 (MVP Compatible)
 
 from __future__ import annotations
 
+import base64
+
+import html
 import json
 import logging
 import tempfile
@@ -24,6 +27,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, Literal
 
+import html
+import base64
+try:
+    # Tenta importar o markdown2 para renderização robusta de texto
+    import markdown2
+    MARKDOWN_AVAILABLE = True
+except ImportError:
+    MARKDOWN_AVAILABLE = False
+    
 from .base_document import (
     BaseDocument,
     DocumentMetadata,
@@ -36,9 +48,222 @@ from .base_document import (
     Figure,
     Table,
     EquationDoc,
+    TextBlock,  # <--- Certifique-se de importar TextBlock
+    TableStyle, # <--- Certifique-se de importar TableStyle
     Verification,
     DocumentLanguage,
 )
+
+
+
+
+
+
+class HtmlRenderer:
+    """
+    Converte uma lista de itens do BaseDocument em uma string HTML.
+
+    Esta classe é responsável por "desenhar" cada item (Seção, Parágrafo,
+    Equação, etc.) em HTML, aplicando classes de CSS inspiradas no
+    visual do efficalc para um relatório limpo e profissional.
+   
+    """
+
+    def __init__(self):
+        # Escapar HTML é crucial para segurança e renderização correta
+        self._esc = html.escape
+
+    def render_body(self, content_items: list) -> str:
+        """
+        Renderiza a lista principal de conteúdo do documento.
+        """
+        body_parts = [self.render_content_item(item) for item in content_items]
+        return "\n".join(body_parts)
+
+    def render_content_item(self, item: Any) -> str:
+        """
+        Dispatcher principal: chama o método de renderização correto
+        para cada tipo de item do memorial.
+       
+        """
+        if isinstance(item, Section):
+            return self._render_section(item)
+        if isinstance(item, TextBlock):
+            return self._render_paragraph(item)
+        if isinstance(item, EquationDoc):
+            return self._render_equation(item)
+        if isinstance(item, Figure):
+            return self._render_figure(item)
+        if isinstance(item, Table):
+            return self._render_table(item)
+        if isinstance(item, str):
+            # Fallback para strings simples
+            return f'<p class="paragraph">{self._esc(item)}</p>'
+        
+        return f''
+
+    def _render_section(self, section: Section) -> str:
+        """
+        Renderiza um item de Seção (título + conteúdo).
+        Este método é recursivo, renderizando todo o conteúdo *dentro* da seção.
+        """
+        # Números (ex: "1.1") vêm do método _prepare_render do BaseDocument
+        title = self._esc(f"{section.number} {section.title}")
+        title_html = f'<h{section.level} class="section-title" id="{section.id}">{title}</h{section.level}>'
+        
+        # Chama recursivamente render_content_item para todo o conteúdo da seção
+        content_html = "\n".join([self.render_content_item(item) for item in section.content])
+        
+        return f'<div class="section-container">\n{title_html}\n{content_html}\n</div>'
+
+    def _render_paragraph(self, paragraph: TextBlock) -> str:
+        """
+        Renderiza um TextBlock.
+        Assume que o SmartTextProcessor já processou
+        o texto, convertendo variáveis inline (ex: f_ck) em LaTeX ($f_{ck}$).
+       
+        """
+        # Se markdown2 estiver instalado, usa para renderizar listas, negrito, etc.
+        if MARKDOWN_AVAILABLE:
+            # O SmartTextProcessor já protegeu o LaTeX inline ($...$),
+            # então o markdown não irá quebrá-lo.
+            # Extras úteis para documentos técnicos.
+            html_text = markdown2.markdown(
+                paragraph.text, 
+                extras=["fenced-code-blocks", "tables", "cuddled-lists", "target-blank-links"]
+            )
+            # Adiciona a classe 'paragraph' ao primeiro <p> gerado
+            html_text = html_text.replace('<p>', '<p class="paragraph">', 1)
+            return html_text
+        else:
+            # Fallback se markdown2 não estiver instalado:
+            # Trata o texto como pré-formatado, escapa e substitui quebras de linha.
+            escaped_text = self._esc(paragraph.text).replace('\n', '<br>\n')
+            return f'<p class="paragraph">{escaped_text}</p>'
+
+    def _render_equation(self, equation: EquationDoc) -> str:
+        """
+        Renderiza um EquationDoc.
+        O LaTeX já vem formatado como um bloco "align*"
+        pelo StepRegistry.
+        """
+        description = self._esc(equation.description)
+        desc_html = f'<p class="equation-description">{description}</p>' if description else ""
+        
+        # O MathJax irá renderizar o bloco LaTeX
+        # O add_calculation já formatou o latex com \begin{align*}...
+        latex_html = f'\\[ {equation.latex} \\]'
+        
+        # O número da equação (ex: "1.1") vem do BaseDocument
+        num_html = f'<span class="equation-number">({self._esc(equation.number)})</span>'
+        
+        # Usa a classe "calc-item" do efficalc para o estilo
+        #
+        return f"""
+        <div class="calc-item" id="{equation.id}">
+            {desc_html}
+            <div class="equation-container">
+                <div class="equation-latex">{latex_html}</div>
+                {num_html}
+            </div>
+        </div>
+        """
+
+    def _render_figure(self, fig: Figure) -> str:
+        """
+        Renderiza uma Figura, convertendo o caminho para base64
+        para um HTML autocontido.
+        """
+        try:
+            with open(fig.path, "rb") as f:
+                b64_data = base64.b64encode(f.read()).decode('utf-8')
+            
+            # Determina o mime type pela extensão do arquivo
+            ext = str(fig.path).split('.')[-1].lower()
+            if ext in ['jpg', 'jpeg']:
+                mime = 'image/jpeg'
+            elif ext == 'svg':
+                mime = 'image/svg+xml'
+            elif ext == 'png':
+                mime = 'image/png'
+            else:
+                mime = 'application/octet-stream' # Fallback
+                
+            src = f'data:{mime};base64,{b64_data}'
+            
+            alt_text = self._esc(fig.caption)
+            # O número da figura vem do BaseDocument
+            caption = self._esc(f"Figura {fig.number} - {fig.caption}")
+            
+            return f"""
+            <figure class="figure-container" id="{fig.id}">
+                <img src="{src}" alt="{alt_text}" style="max-width:100%; height:auto;" />
+                <figcaption>{caption}</figcaption>
+            </figure>
+            """
+        except Exception as e:
+            error_msg = self._esc(f"Erro ao carregar figura: {fig.path} - {e}")
+            return f'<div class="figure-container error-box">{error_msg}</div>'
+
+    def _render_table(self, table: Table) -> str:
+        """
+        Renderiza uma Tabela.
+        Tenta detectar se os dados são um DataFrame pandas ou uma lista de listas.
+        """
+        try:
+            # O número da tabela vem do BaseDocument
+            caption = self._esc(f"Tabela {table.number} - {table.caption}")
+            caption_html = f'<caption>{caption}</caption>'
+            
+            headers = []
+            data_rows = []
+            
+            # Detecção de DataFrame (sem importar pandas)
+            if "DataFrame" in str(type(table.data)):
+                headers = table.data.columns.tolist()
+                data_rows = table.data.values.tolist()
+            # Detecção de lista de listas (assume que a primeira linha é header)
+            elif isinstance(table.data, list) and len(table.data) > 0 and isinstance(table.data[0], list):
+                headers = table.data[0]
+                data_rows = table.data[1:]
+            else:
+                raise ValueError("Formato de dados da tabela não suportado. Use DataFrame ou lista de listas.")
+
+            # Monta o cabeçalho
+            header_html = "<thead><tr>"
+            for h in headers:
+                header_html += f"<th>{self._esc(str(h))}</th>"
+            header_html += "</tr></thead>"
+            
+            # Monta o corpo
+            body_html = "<tbody>"
+            for row in data_rows:
+                body_html += "<tr>"
+                for cell in row:
+                    body_html += f"<td>{self._esc(str(cell))}</td>"
+                body_html += "</tr>"
+            body_html += "</tbody>"
+            
+            # Usa o estilo "striped" (zebrado) do efficalc
+            #
+            style_class = "striped"
+            if table.style == TableStyle.MINIMAL:
+                style_class = "minimal"
+            
+            return f"""
+            <div class="table-container" id="{table.id}">
+                <table class="{style_class}">
+                    {caption_html}
+                    {header_html}
+                    {body_html}
+                </table>
+            </div>
+            """
+        except Exception as e:
+            error_msg = self._esc(f"Erro ao renderizar tabela: {table.caption} - {e}")
+            return f'<div class="table-container error-box">{error_msg}</div>'
+
+
 
 # ============================================================================
 # MEMORIAL CLASS
@@ -738,18 +963,191 @@ class Memorial(BaseDocument):
         
         return output_path.resolve()
     
-    def _render_html(self, output_path: Path, **kwargs) -> Path:
-        """Render to HTML5."""
-        self._logger.info("Rendering to HTML5...")
+    def render_html(self, filepath: str, open_on_save: bool = True):
+        """
+        Renderiza o documento completo para um arquivo HTML com estilo profissional.
+        Inspirado na arquitetura de efficalc.ReportBuilder.save_report
+        [cite: youandvern/efficalc/efficalc-5920cf5ae2a4920c85adc6d2880faf0e51898ecd/efficalc/report_builder.py]
+        """
+        self._prepare_render()  # Chama o método do BaseDocument para numerar tudo
         
-        html_content = self._generate_html_content(**kwargs)
+        renderer = HtmlRenderer()
+        # Usa o renderer para gerar o corpo do HTML
+        body_content = renderer.render_body(self.content)
+
+        # CSS inspirado diretamente no efficalc para um visual limpo e profissional
+        # [cite: youandvern/efficalc/efficalc-5920cf5ae2a4920c85adc6d2880faf0e51898ecd/efficalc/report_builder.py]
+        css_styles = """
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                background-color: #eeeeee;
+                margin: 0;
+                padding: 0;
+            }
+            .page-container {
+                max-width: 850px;
+                margin: 2rem auto;
+                padding: 2.5rem;
+                background-color: #ffffff;
+                box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+            }
+            h1, h2, h3, h4, h5 {
+                color: #2c3e50;
+                margin-top: 1.5em;
+                margin-bottom: 0.5em;
+            }
+            .section-title {
+                border-bottom: 2px solid #e0e0e0;
+                padding-bottom: 8px;
+            }
+            h1.section-title {
+                font-size: 2.2em;
+                border-bottom-width: 3px;
+                border-color: #2c3e50;
+            }
+            h2.section-title {
+                font-size: 1.8em;
+            }
+            h3.section-title {
+                font-size: 1.5em;
+                border-bottom-style: dashed;
+            }
+            .calc-item {
+                margin-block: 2rem;
+                padding: 1rem 1.5rem;
+                border-left: 4px solid #3498db;
+                background-color: #f8f9fa;
+                border-radius: 4px;
+            }
+            .equation-description {
+                font-style: italic;
+                color: #555;
+                margin-top: 0;
+            }
+            .equation-container {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                overflow-x: auto;
+            }
+            .equation-latex {
+                flex-grow: 1;
+            }
+            .equation-number {
+                color: #888;
+                font-size: 0.9em;
+                padding-left: 1.5rem;
+                align-self: flex-end;
+            }
+            .paragraph {
+                text-align: justify;
+                font-size: 1.1em;
+            }
+            /* Estilos de Tabela e Figura */
+            .figure-container, .table-container {
+                margin: 2rem auto;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            figure figcaption, table caption {
+                caption-side: bottom;
+                font-size: 0.95em;
+                color: #555;
+                margin-top: 0.5rem;
+                font-style: italic;
+            }
+            table {
+              border-collapse: collapse;
+              width: 90%;
+            }
+            td, th {
+              border: 1px solid #bdbdbd;
+              text-align: center;
+              padding: 10px;
+            }
+            th {
+              background-color: #f2f2f2;
+              border-bottom: 2px solid #424242;
+            }
+            table.striped tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .error-box {
+                border: 2px solid #e74c3c;
+                background: #fbeae8;
+                padding: 1rem;
+                border-radius: 4px;
+            }
+
+            /* Media query para impressão, como no efficalc */
+            @media print {
+                body {
+                    background-color: #ffffff;
+                }
+                .page-container {
+                    box-shadow: none;
+                    margin: 0;
+                    padding: 0;
+                    max-width: none;
+                }
+                .calc-item {
+                    background-color: #ffffff;
+                    border: 1px solid #ccc;
+                }
+                h1, h2, h3 {
+                    page-break-after: avoid;
+                }
+            }
+        """
+
+        # Monta a página HTML final, incluindo o script do MathJax
+        # [cite: youandvern/efficalc/efficalc-5920cf5ae2a4920c85adc6d2880faf0e51898ecd/efficalc/report_builder.py]
+        html_template = f"""
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>{self._esc(self.metadata.title)}</title>
+            <script type="text/javascript" async
+              src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.0.0-beta.7/tex-mml-chtml.min.js"></script>
+            <style>{css_styles}</style>
+        </head>
+        <body>
+            <div class="page-container">
+                <header>
+                    <h1>{self._esc(self.metadata.title)}</h1>
+                    <p><strong>Autor:</strong> {self._esc(self.metadata.author)}</p>
+                    <p><strong>Data:</strong> {datetime.now().strftime('%d/%m/%Y')}</p>
+                </header>
+                <hr>
+                <main>
+                    {body_content}
+                </main>
+            </div>
+        </body>
+        </html>
+        """
+
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(html_template)
+
+            if open_on_save:
+                webbrowser.open("file://" + os.path.realpath(filepath))
+
+            self.logger.info(f"Memorial renderizado com sucesso em: {filepath}")
         
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-        
-        self._logger.info(f"HTML generated: {output_path}")
-        
-        return output_path.resolve()
+        except IOError as e:
+            self.logger.error(f"Falha ao salvar o arquivo HTML: {e}")
+            raise RenderError(f"Não foi possível salvar o arquivo em {filepath}") from e
+        except Exception as e:
+            self.logger.error(f"Erro inesperado durante a renderização: {e}")
+            raise RenderError(f"Erro desconhecido: {e}") from e
+
     
     def _render_docx(self, output_path: Path, **kwargs) -> Path:
         """Render to DOCX via pandoc."""
@@ -1045,3 +1443,4 @@ class Memorial(BaseDocument):
         strong { font-weight: bold; color: #000; }
     </style>
     '''
+

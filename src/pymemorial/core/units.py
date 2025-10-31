@@ -49,7 +49,12 @@ except ImportError:
         "Pint library not installed. Unit functionality limited. "
         "Install with: poetry add pint"
     )
-
+try:
+    import sympy as sp
+    SYMPY_AVAILABLE = True
+except ImportError:
+    sp = None
+    SYMPY_AVAILABLE = False
 
 # =============================================================================
 # EXCEÇÕES
@@ -175,6 +180,236 @@ class UnitRegistry:
         except Exception as e:
             logger.warning(f"Failed to add custom definitions: {e}")
 
+
+
+    def calculate_resultant_unit(
+        self,
+        expr: Any,
+        unit_context: Dict[str, Optional[str]]
+    ) -> Optional[str]:
+        """
+        Calcula a unidade resultante de uma expressão SymPy usando Pint.
+        
+        Usa análise dimensional pura (sem valores numéricos).
+        
+        Args:
+            expr: Expressão SymPy
+            unit_context: Dicionário {nome_variavel: unidade_str}
+            
+        Returns:
+            String da unidade resultante simplificada, ou None se adimensional
+            
+        Raises:
+            DimensionalError: Se houver inconsistência dimensional
+            UnitError: Erro inesperado
+        """
+        if not self.ureg or not SYMPY_AVAILABLE:
+            logger.debug("Cálculo de unidade resultante pulado (Pint ou SymPy indisponível).")
+            return None
+        
+        try:
+            # Construir dicionário de unidades Pint
+            unit_dict_pint = {}
+            expr_symbols = expr.free_symbols if hasattr(expr, 'free_symbols') else set()
+            
+            for sym in expr_symbols:
+                name = str(sym)
+                unit_str = unit_context.get(name)
+                
+                try:
+                    if unit_str:
+                        unit_obj = self.ureg(unit_str).units
+                        unit_dict_pint[sym] = unit_obj
+                    else:
+                        unit_dict_pint[sym] = self.ureg.dimensionless
+                except Exception as e:
+                    logger.warning(
+                        f"Unidade inválida '{unit_str}' para '{name}': {e}. "
+                        f"Tratando como adimensional."
+                    )
+                    unit_dict_pint[sym] = self.ureg.dimensionless
+            
+            # Calcular dimensão resultante
+            result_unit = self._evaluate_dimensional_expression(expr, unit_dict_pint)
+            
+            if result_unit is None or result_unit == self.ureg.dimensionless:
+                return None
+            
+            # ===== SIMPLIFICAR UNIDADE =====
+            try:
+                # Criar quantity para manipular
+                dummy_quantity = 1.0 * result_unit
+                
+                # ✅ TENTAR MANTER UNIDADES CONSISTENTES COM INPUT
+                # Detectar qual sistema de unidades foi usado no input
+                input_units_str = list(unit_context.values())
+                
+                # Se todas as unidades de comprimento são mm, manter resultado em mm
+                if any('mm' in str(u) for u in input_units_str if u):
+                    # Tentar converter para mm se for comprimento
+                    try:
+                        if dummy_quantity.dimensionality == self.ureg('mm').dimensionality:
+                            result_in_preferred = dummy_quantity.to('mm')
+                            return f"{result_in_preferred.units:~P}"
+                    except Exception:
+                        pass  # Se falhar, usar simplificação padrão
+                
+                # Se todas as unidades de comprimento são m, manter em m
+                elif any(str(u) == 'm' for u in input_units_str if u):
+                    try:
+                        if dummy_quantity.dimensionality == self.ureg('m').dimensionality:
+                            result_in_preferred = dummy_quantity.to('m')
+                            return f"{result_in_preferred.units:~P}"
+                    except Exception:
+                        pass
+                
+                # ✅ SIMPLIFICAÇÃO PADRÃO: Usar unidades compactas (não base)
+                # Tenta 'compact' ao invés de 'base_units'
+                result_unit_str = f"{dummy_quantity.units:~C}"
+                
+                # Se ainda muito complexo, tentar simplificar
+                if len(result_unit_str) > 20:
+                    try:
+                        simplified = dummy_quantity.to_base_units()
+                        result_unit_str = f"{simplified.units:~P}"
+                    except Exception:
+                        pass
+                
+                return result_unit_str
+                
+            except Exception as e:
+                logger.debug(f"Não foi possível simplificar unidade: {e}")
+                return f"{result_unit:~P}"
+        
+        except pint.DimensionalityError as e:
+            logger.error(f"Erro dimensional em calculate_resultant_unit para {expr}: {e}")
+            raise DimensionalError(f"Inconsistência dimensional: {e}") from e
+        
+        except Exception as e:
+            logger.error(f"Erro inesperado em calculate_resultant_unit para {expr}: {e}", exc_info=True)
+            logger.warning("Falha ao calcular unidade via Pint, continuando sem unidade")
+            return None
+
+            
+            # Simplificar para unidades base se possível
+            try:
+                # Criar uma quantity com a unidade para simplificar
+                dummy_quantity = 1.0 * result_unit
+                simplified = dummy_quantity.to_base_units()
+                result_unit_str = f"{simplified.units:~P}"
+                
+                # Se simplificado é muito feio, tentar compact
+                if len(result_unit_str) > 20:
+                    result_unit_str = f"{simplified.units:~C}"
+                
+                return result_unit_str
+                
+            except Exception as e:
+                logger.debug(f"Não foi possível simplificar unidade: {e}")
+                return f"{result_unit:~P}"
+        
+        except pint.DimensionalityError as e:
+            logger.error(f"Erro dimensional em calculate_resultant_unit para {expr}: {e}")
+            raise DimensionalError(f"Inconsistência dimensional: {e}") from e
+        
+        except Exception as e:
+            logger.error(f"Erro inesperado em calculate_resultant_unit para {expr}: {e}", exc_info=True)
+            # Não falhar silenciosamente - logar mas retornar None
+            logger.warning("Falha ao calcular unidade via Pint, continuando sem unidade")
+            return None
+    
+    def _evaluate_dimensional_expression(
+        self, 
+        expr: Any, 
+        unit_dict: Dict[Any, Any]
+    ) -> Optional[Any]:
+        """
+        Avalia dimensão de uma expressão SymPy recursivamente.
+        
+        Args:
+            expr: Expressão SymPy
+            unit_dict: Dicionário {Symbol: Pint Unit}
+            
+        Returns:
+            Pint Unit resultante
+        """
+        import sympy as sp
+        
+        # Caso base: símbolo
+        if isinstance(expr, sp.Symbol):
+            return unit_dict.get(expr, self.ureg.dimensionless)
+        
+        # Caso base: número
+        if isinstance(expr, sp.Number):
+            return self.ureg.dimensionless
+        
+        # Adição/Subtração: todas unidades devem ser iguais
+        if isinstance(expr, sp.Add):
+            units = [self._evaluate_dimensional_expression(arg, unit_dict) for arg in expr.args]
+            # Verificar se todas são iguais
+            first_unit = units[0]
+            for u in units[1:]:
+                if u != first_unit:
+                    raise pint.DimensionalityError(
+                        first_unit, u,
+                        extra_msg="Não é possível somar/subtrair quantidades com unidades diferentes"
+                    )
+            return first_unit
+        
+        # Multiplicação: multiplicar unidades
+        if isinstance(expr, sp.Mul):
+            result_unit = self.ureg.dimensionless
+            for arg in expr.args:
+                arg_unit = self._evaluate_dimensional_expression(arg, unit_dict)
+                result_unit = result_unit * arg_unit
+            return result_unit
+        
+        # Potência: elevar unidade à potência
+        if isinstance(expr, sp.Pow):
+            base = expr.args[0]
+            exponent = expr.args[1]
+            
+            base_unit = self._evaluate_dimensional_expression(base, unit_dict)
+            
+            # Expoente deve ser adimensional (número)
+            if isinstance(exponent, sp.Number):
+                exp_val = float(exponent)
+                return base_unit ** exp_val
+            else:
+                # Expoente não é número puro
+                exp_unit = self._evaluate_dimensional_expression(exponent, unit_dict)
+                if exp_unit != self.ureg.dimensionless:
+                    raise pint.DimensionalityError(
+                        exp_unit, self.ureg.dimensionless,
+                        extra_msg="Expoente deve ser adimensional"
+                    )
+                # Se chegou aqui, expoente é expressão que resulta em adimensional
+                # Avaliar numericamente para obter valor
+                exp_val = float(exponent.evalf())
+                return base_unit ** exp_val
+        
+        # Funções (sin, cos, etc): argumento deve ser adimensional, resultado adimensional
+        if isinstance(expr, sp.Function):
+            # Verificar argumentos
+            for arg in expr.args:
+                arg_unit = self._evaluate_dimensional_expression(arg, unit_dict)
+                if arg_unit != self.ureg.dimensionless:
+                    logger.warning(
+                        f"Argumento de função {expr.func} tem unidade {arg_unit}, "
+                        f"esperado adimensional"
+                    )
+            return self.ureg.dimensionless
+        
+        # Fallback: tentar avaliar numericamente e assumir adimensional
+        logger.debug(f"Tipo de expressão não reconhecido para análise dimensional: {type(expr)}")
+        return self.ureg.dimensionless
+
+
+
+# --- Adicionar DimensionalError às exceções em units.py se já não existir ---
+class DimensionalError(UnitError):
+    """Erro de incompatibilidade dimensional."""
+    pass
 
     
     # =========================================================================

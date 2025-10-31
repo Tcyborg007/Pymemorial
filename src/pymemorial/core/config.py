@@ -231,13 +231,16 @@ class PyMemorialConfig:
         }
     }
     
+    # Dentro da classe PyMemorialConfig em config.py
+
     def __init__(self):
+        # Definição dos atributos padrão PRIMEIRO
         self.display = DisplayConfig()
         self.symbols = SymbolsConfig()
         self.standard = StandardConfig()
         self.rendering = RenderingConfig()
 
-        # Determinar arquivo de configuração (com suporte a variável de ambiente)
+        # Determinar arquivo de configuração
         config_file_env = os.getenv('PYMEMORIAL_CONFIG_FILE')
         if config_file_env:
             self.config_file = Path(config_file_env)
@@ -245,13 +248,28 @@ class PyMemorialConfig:
             config_dir = Path.home() / '.pymemorial'
             self.config_file = config_dir / 'config.json'
 
-        # Só faz autoload se a env var NÃO estiver ativada
-        disable = os.getenv('PYMEMORIAL_DISABLE_AUTOLOAD', '').lower() in ('1', 'true', 'yes')
-        if not disable and self.config_file.exists():
+        # --- MODIFICAÇÃO PARA ISOLAR TESTES ---
+        # Verificar se está rodando sob Pytest
+        is_under_pytest = "PYTEST_CURRENT_TEST" in os.environ
+        # Verificar variável de ambiente para desabilitar autoload
+        disable_env = os.getenv('PYMEMORIAL_DISABLE_AUTOLOAD', '').lower() in ('1', 'true', 'yes')
+
+        # Só faz autoload se:
+        # 1. Autoload NÃO estiver desabilitado via env var
+        # 2. O arquivo de config existir
+        # 3. NÃO estiver rodando sob Pytest
+        should_autoload = not disable_env and self.config_file.exists() and not is_under_pytest
+        # --- FIM DA MODIFICAÇÃO ---
+
+        if should_autoload:
             try:
                 self.load_config()
-            except Exception:
-                pass
+            except Exception as e:
+                # Logar erro mas continuar com os defaults para não quebrar a aplicação
+                # Idealmente, usar logging aqui em vez de print
+                print(f"[PyMemorialConfig Warning] Failed to autoload config file "
+                      f"{self.config_file}: {e}. Using default settings.")
+                pass # Continua com os defaults definidos acima
     
     def load_profile(self, profile_name: str) -> None:
         """Carrega perfil de norma técnica."""

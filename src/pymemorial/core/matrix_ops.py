@@ -7,7 +7,7 @@ Matrix Operations with Step-by-Step Solutions - PyMemorial v2.3.1
 ✅ Multiplicação de Matrizes (elemento-a-elemento detalhado)
 ✅ Inversão de Matrizes (com verificação de singularidade)
 ✅ Transposição
-✅ Determinante (com método de Laplace para granularidade 'all')
+✅ Determinante
 ✅ Autovalores/Autovetores (NOVO em v2.3.0)
 ✅ Decomposição LU (NOVO em v2.3.0)
 ✅ Decomposição de Cholesky (NOVO em v2.3.0)
@@ -24,10 +24,9 @@ Matrix Operations with Step-by-Step Solutions - PyMemorial v2.3.1
 ✅ Fixed indentation issues
 ✅ Robust error handling
 
-Author: PyMemorial Team + Expert Structural Engineer
-Date: 2025-10-23
-Version: 2.3.1 (Production-Ready + Hotfix)
-License: MIT
+REVISÃO (Refatoração):
+- Removido 'GranularityType' e o parâmetro 'granularity' de todas
+  as funções de operação, padronizando a saída de steps.
 """
 
 from __future__ import annotations
@@ -59,7 +58,10 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Type aliases para clareza
-GranularityType = Literal['normal', 'detailed', 'all']
+# ----------------------------------------------------------------------------
+# REVISÃO: GranularityType removido.
+# ----------------------------------------------------------------------------
+# GranularityType = Literal['normal', 'detailed', 'all']
 MatrixLike = Union[Matrix, np.ndarray, list]
 StepDict = Dict[str, Any]
 
@@ -70,8 +72,8 @@ StepDict = Dict[str, Any]
 
 def multiply_matrices_with_steps(
     A: Matrix,
-    B: Matrix,
-    granularity: GranularityType = 'normal'
+    B: Matrix
+    # granularity: GranularityType = 'normal' # <-- REMOVIDO
 ) -> Tuple[Matrix, List[StepDict]]:
     """
     ✅ MULTIPLICAÇÃO DE MATRIZES COM STEPS COMPLETOS
@@ -79,7 +81,7 @@ def multiply_matrices_with_steps(
     Args:
         A: Primeira matriz (m×n)
         B: Segunda matriz (n×p)
-        granularity: Nível de detalhamento ('normal', 'detailed', 'all')
+        # granularity: (REMOVIDO)
     
     Returns:
         Tuple[Matrix, List[StepDict]]: (Matriz resultado, Lista de steps)
@@ -138,8 +140,8 @@ def multiply_matrices_with_steps(
 # ============================================================================
 
 def invert_matrix_with_steps(
-    A: Matrix,
-    granularity: GranularityType = 'normal'
+    A: Matrix
+    # granularity: GranularityType = 'normal' # <-- REMOVIDO
 ) -> Tuple[Matrix, List[StepDict]]:
     """✅ INVERSÃO DE MATRIZ COM STEPS"""
     steps = []
@@ -195,8 +197,8 @@ def invert_matrix_with_steps(
 # ============================================================================
 
 def transpose_matrix_with_steps(
-    A: Matrix,
-    granularity: GranularityType = 'normal'
+    A: Matrix
+    # granularity: GranularityType = 'normal' # <-- REMOVIDO
 ) -> Tuple[Matrix, List[StepDict]]:
     """✅ Transpõe matriz com steps"""
     steps = []
@@ -236,8 +238,8 @@ def transpose_matrix_with_steps(
 # ============================================================================
 
 def determinant_with_steps(
-    A: Matrix,
-    granularity: GranularityType = 'normal'
+    A: Matrix
+    # granularity: GranularityType = 'normal' # <-- REMOVIDO
 ) -> Tuple[float, List[StepDict]]:
     """✅ Calcula determinante com steps"""
     steps = []
@@ -273,7 +275,7 @@ def determinant_with_steps(
 
 def eigenvalues_with_steps(
     A: Matrix,
-    granularity: GranularityType = 'normal',
+    # granularity: GranularityType = 'normal', # <-- REMOVIDO
     compute_eigenvectors: bool = False
 ) -> Tuple[Union[np.ndarray, Tuple[np.ndarray, np.ndarray]], List[StepDict]]:
     """✅ CÁLCULO DE AUTOVALORES (E AUTOVETORES OPCIONAIS)"""
@@ -343,8 +345,8 @@ def eigenvalues_with_steps(
 
 def add_matrices_with_steps(
     A: Matrix,
-    B: Matrix,
-    granularity: GranularityType = 'normal'
+    B: Matrix
+    # granularity: GranularityType = 'normal' # <-- REMOVIDO
 ) -> Tuple[Matrix, List[StepDict]]:
     """✅ ADIÇÃO DE MATRIZES"""
     steps = []
@@ -369,8 +371,8 @@ def add_matrices_with_steps(
 
 
 def trace_with_steps(
-    A: Matrix,
-    granularity: GranularityType = 'normal'
+    A: Matrix
+    # granularity: GranularityType = 'normal' # <-- REMOVIDO
 ) -> Tuple[float, List[StepDict]]:
     """✅ TRAÇO DA MATRIZ"""
     steps = []
@@ -393,8 +395,8 @@ def trace_with_steps(
 
 
 def rank_with_steps(
-    A: Matrix,
-    granularity: GranularityType = 'normal'
+    A: Matrix
+    # granularity: GranularityType = 'normal' # <-- REMOVIDO
 ) -> Tuple[int, List[StepDict]]:
     """✅ POSTO (RANK) DA MATRIZ"""
     steps = []

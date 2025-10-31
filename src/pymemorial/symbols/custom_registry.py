@@ -43,16 +43,15 @@ from typing import Dict, List, Optional
 
 from pymemorial.core.config import get_config
 from pymemorial.recognition.greek import ASCII_TO_GREEK
-from pymemorial.recognition.ast_parser import PyMemorialASTParser
-
+from pymemorial.recognition.ast_parser import PyMemorialASTParser, ParsedAssignment
 __all__ = [
     'Symbol',
     'SymbolRegistry',
     'RegistryError',
     'get_global_registry',
-    'reset_global_registry'
+    'reset_global_registry',
+    'get_registry'  # ← ADICIONADO!
 ]
-
 
 # =============================================================================
 # EXCEÇÕES
@@ -61,7 +60,6 @@ __all__ = [
 class RegistryError(Exception):
     """Erro de operação do registry de símbolos."""
     pass
-
 
 # =============================================================================
 # ESTRUTURAS DE DADOS
@@ -94,7 +92,6 @@ class Symbol:
     
     def __repr__(self) -> str:
         return f"Symbol(name='{self.name}', latex='{self.latex}')"
-
 
 # =============================================================================
 # REGISTRY PRINCIPAL
@@ -483,13 +480,11 @@ class SymbolRegistry:
         latex = parser.to_latex(name)
         return latex
 
-
 # =============================================================================
 # SINGLETON GLOBAL
 # =============================================================================
 
 _global_registry: Optional[SymbolRegistry] = None
-
 
 def get_global_registry() -> SymbolRegistry:
     """
@@ -508,6 +503,18 @@ def get_global_registry() -> SymbolRegistry:
         _global_registry = SymbolRegistry()
     return _global_registry
 
+def get_registry() -> SymbolRegistry:
+    """
+    Alias para get_global_registry() (compatibilidade).
+    
+    Returns:
+        Instância singleton do registry
+    
+    Examples:
+        >>> from pymemorial.symbols import get_registry
+        >>> registry = get_registry()
+    """
+    return get_global_registry()
 
 def reset_global_registry() -> None:
     """

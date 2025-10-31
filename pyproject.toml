@@ -297,16 +297,15 @@ exclude = ["dist", "build", "docs/_build"]
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+
+# ✅ ADDOPTS SIMPLIFICADO (sem coverage)
 addopts = [
-  "-ra",
-  "-q",
-  "--strict-markers",
-  "--cov=src/pymemorial",
-  "--cov-report=term-missing",
-  "--cov-report=html:htmlcov",
-  "--cov-report=xml:coverage.xml",
-  "--maxfail=3",
-  "--tb=short"
+  "-ra",              # Show extra test summary info for all
+  "-q",               # Quiet mode (menos verbose)
+  "--strict-markers", # Markers devem ser registrados
+  "--maxfail=3",      # Para após 3 falhas
+  "--tb=short",       # Traceback curto
+  "-v",               # Verbose (mostra cada teste)
 ]
 xfail_strict = true
 log_cli = true

@@ -624,30 +624,49 @@ class BaseDocument(ABC):
 
     # RENDER & EXPORT (Enhanced Context)
     def get_render_context(self) -> Dict[str, Any]:
-        """Enhanced: + detected variables, compliance."""
-        context = {
-            'metadata': self.metadata,
-            'sections': self.sections,
-            'figures': self.figures,
-            'tables': self.tables,
-            'equations': self.equations,
-            'verifications': self.verifications,
-            'toc': self.get_toc(),
-            'global_context': self._global_context,
-            'revisions': self.revisions,
-            'cross_refs': self.cross_refs,
+        """
+        Retorna contexto completo para renderização.
+        """
+        sections_data = []
+        
+        for section_id in sorted(self._sections.keys()):
+            section = self._sections[section_id]
+            
+            # ✅ Processar conteúdos COM metadata
+            contents_data = []
+            for block in section.contents:
+                block_data = {
+                    'type': block.type,
+                    'content': block.content
+                }
+                
+                # ✅ CRÍTICO: Incluir metadata
+                if hasattr(block, 'metadata') and block.metadata:
+                    block_data['metadata'] = block.metadata
+                
+                contents_data.append(block_data)
+            
+            section_data = {
+                'id': section.id,
+                'title': section.title,
+                'number': section.number,
+                'level': section.level,
+                'parent': section.parent_id,
+                'contents': contents_data
+            }
+            sections_data.append(section_data)
+        
+        return {
+            'title': self.metadata.title,
+            'author': self.metadata.author,
+            'company': self.metadata.company,
+            'date': self.metadata.date,
+            'version': self.metadata.version,
+            'norm_code': self.metadata.norm_code.value if hasattr(self.metadata.norm_code, 'value') else str(self.metadata.norm_code),
+            'sections': sections_data
         }
-        
-        # MVP: Add detected variables if processor available
-        if self.processor and RECOGNITION_AVAILABLE:
-            all_text = ' '.join(getattr(s, 'content', '') for s in self.sections)
-            # Simple detection (no _auto_detect_variables method in MVP)
-            var_pattern = r'\b([a-zA-Z_][a-zA-Z0-9_]*)\b'
-            detected_vars = list(set(re.findall(var_pattern, all_text)))
-            context['detected_variables'] = detected_vars
-        
-        context['compliance'] = asdict(self.compliance)
-        return context
+
+
 
     def get_toc(self) -> List[Dict[str, Any]]:
         """Generate table of contents."""
@@ -878,31 +897,147 @@ class BaseDocument(ABC):
 class Memorial(BaseDocument):
     """Concrete Memorial subclass."""
     def render(self, output_path: Union[str, Path], format: str = "pdf") -> Path:
-        """Render memorial to PDF (WeasyPrint stub)."""
+        """
+        Render memorial to PDF (WeasyPrint).
+        """
         try:
-            from weasyprint import HTML, CSS
-        except ImportError:
-            raise ImportError("WeasyPrint required for PDF. Install: pip install weasyprint")
+            from weasyprint import HTML
+            from jinja2 import Template
+        except ImportError as e:
+            raise ImportError(f"Missing dependencies: {e}. Install: pip install weasyprint jinja2")
         
         output_path = Path(output_path)
         context = self.get_render_context()
         
-        # Simple HTML template (expansível com Jinja2)
-        html_content = f"""
-        <html><head><title>{self.metadata.title}</title>
-        <style>body {{ font-family: Arial; }} h1 {{ color: blue; }}</style></head>
-        <body><h1>{self.metadata.title}</h1>
-        <p>Norm: {self.metadata.norm_code}</p>
-        <ul>{''.join(f'<li>{entry["number"]} {entry["title"]}</li>' for entry in context["toc"])}</ul>
-        <div>{''.join(str(getattr(c, 'content', '')) for s in context["sections"] for c in getattr(s, "contents", []))}</div>
-        <p>Compliance: {self.compliance.compliance_rate:.1%}</p>
-        </body></html>
-        """
+        # ✅ TEMPLATE CORRIGIDO - Usa metadata['latex'] para cálculos
+        html_template = Template("""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #0066cc;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        h2 {
+            color: #0088cc;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-top: 25px;
+        }
+        h3 {
+            color: #666;
+            margin-top: 20px;
+        }
+        .metadata {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #0066cc;
+            margin-bottom: 30px;
+        }
+        .calculation {
+            background-color: #f5f5f5;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            font-size: 0.9em;
+        }
+        .variable {
+            background-color: #fff3cd;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #ffc107;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ title }}</h1>
+    <div class="metadata">
+        <p><strong>Autor:</strong> {{ author }}</p>
+        <p><strong>Norma:</strong> {{ norm_code }}</p>
+        <p><strong>Data:</strong> {{ date }}</p>
+    </div>
+    
+    {% for section in sections %}
+        {% if section.level == 1 %}
+            <h1>{{ section.number }} {{ section.title }}</h1>
+        {% elif section.level == 2 %}
+            <h2>{{ section.number }} {{ section.title }}</h2>
+        {% else %}
+            <h3>{{ section.number }} {{ section.title }}</h3>
+        {% endif %}
         
+        {% for content in section.contents %}
+            {% if content.type == 'text' %}
+                <p>{{ content.content }}</p>
+            
+            {% elif content.type == 'calculation' %}
+                {# ✅ CORREÇÃO CRÍTICA: Usar metadata.latex se disponível #}
+                {% if content.metadata and content.metadata.latex %}
+                    <div class="calculation">{{ content.metadata.latex | replace('\\\\', '<br>') | replace('\\text{', '') | replace('}', '') | replace('\\cdot', '×') | safe }}</div>
+                {% else %}
+                    <div class="calculation">{{ content.content }}</div>
+                {% endif %}
+            
+            {% elif content.type == 'variable' %}
+                {% if content.metadata %}
+                    <div class="variable">{{ content.metadata.name }} = {{ content.metadata.value }} {{ content.metadata.unit }}</div>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+</body>
+</html>
+        """)
+        
+        # Renderizar template
+        html_content = html_template.render(**context)
+        
+        # Gerar PDF
         HTML(string=html_content).write_pdf(output_path)
-        self._frozen = True  # Freeze after render
-        self._logger.info(f"Memorial rendered to {output_path}")
+        self.frozen = True
+        self.logger.info(f"Memorial rendered to {output_path}")
         return output_path
+
+    
+    def _format_latex_to_html(self, latex: str) -> str:
+        """
+        Converte LaTeX básico para HTML formatado (fallback sem MathJax).
+        """
+        import re
+        
+        # Remover ambientes
+        text = re.sub(r'\\begin\{[^}]+\}', '', latex)
+        text = re.sub(r'\\end\{[^}]+\}', '', text)
+        
+        # Converter quebras de linha
+        text = text.replace(r'\\', '<br>')
+        text = text.replace('\n', '<br>')
+        
+        # Remover comandos LaTeX comuns
+        text = re.sub(r'\\text\{([^}]+)\}', r'\1', text)
+        text = text.replace('&', '&amp;')
+        
+        # Símbolos matemáticos
+        text = text.replace(r'\cdot', ' × ')
+        text = text.replace(r'\times', ' × ')
+        text = text.replace(r'\div', ' ÷ ')
+        
+        return text.strip()
+
 
     def to_dict(self) -> Dict[str, Any]:
         return {

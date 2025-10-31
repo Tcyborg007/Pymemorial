@@ -34,7 +34,6 @@ try:
     from .matrix import (
         Matrix,
         MatrixType,
-        GranularityType,
         MATRIX_AVAILABLE as CORE_MATRIX_FLAG,
         NUMPY_AVAILABLE as CORE_NUMPY_FLAG,
         SYMPY_AVAILABLE as CORE_SYMPY_FLAG,
@@ -71,7 +70,6 @@ except ImportError as e:
     NUMPY_AVAILABLE = False
     Matrix = None
     MatrixType = None
-    GranularityType = None
     multiply_matrices_with_steps = None
     invert_matrix_with_steps = None
     debug_matrix_parsing = None
@@ -80,7 +78,6 @@ except ImportError as e:
     try:
         from typing import Any
         MatrixType = Any
-        GranularityType = Any
     except:
         pass
 
@@ -186,26 +183,32 @@ except ImportError as e:
 # ============================================================================
 # VARIABLE MODULE ✅ CORRIGIDO
 # ============================================================================
+# Em core/__init__.py - CORRIGIR PARA:
 try:
-    # ✅ REMOVER VariableFactory - NÃO EXISTE!
     from .variable import Variable
-    logger.debug("✅ Variable module loaded.")
-except ImportError as e:
-    logger.warning(f"⚠️ Variable module failed: {e}.")
+    VariableFactory = None  # Não implementado ainda
+except ImportError:
     Variable = None
+    VariableFactory = None
+
 
 
 # ============================================================================
 # EQUATION MODULE (Depende de SymPy)
 # ============================================================================
+# ============================================================================
+# EQUATION MODULE (Depende de SymPy)
+# ============================================================================
 try:
+    # CORREÇÃO: Remover 'StepPlugin' da importação de .equation
     from .equation import (
         Equation, EquationFactory, 
-        StepRegistry, StepPlugin, 
-        GranularityType
+        StepRegistry, 
+        Step,           # Importar Step e StepType também
+        StepType
     )
     
-    # ✅ ATUALIZA FLAG GLOBAL DE SYMPY (fonte primária)
+    # Atualiza flag global de SymPy (fonte primária)
     try:
         import sympy as sp
         SYMPY_AVAILABLE = True
@@ -216,20 +219,22 @@ try:
             "Equation module loaded BUT SymPy import failed. "
             "Core functionality limited."
         )
+        # Se SymPy falha, Equation e outros falharão também
         Equation = None
         EquationFactory = None
         StepRegistry = None
-        StepPlugin = None
-        GranularityType = None
+        Step = None
+        StepType = None
         
 except ImportError as e:
     logger.warning(f"Equation module failed entirely: {e}.")
     Equation = None
     EquationFactory = None
     StepRegistry = None
-    StepPlugin = None
-    GranularityType = None
-    SYMPY_AVAILABLE = False
+    # StepPlugin = None # Removido
+    Step = None
+    StepType = None
+    SYMPY_AVAILABLE = False # Se equation falhar, SymPy pode não estar disponível
 
 
 # ============================================================================
@@ -420,11 +425,17 @@ def validate_compatibility() -> Dict[str, Any]:
         pass
     
     # 6. Valida circular dependencies (Variable ↔ Equation)
-    if Variable is not None and Equation is not None:
+    if Variable is not None and Equation is not None and EquationFactory is not None:
         try:
+            # --- INÍCIO DA CORREÇÃO ---
             # Testa criação básica
-            test_var = VariableFactory.create('test', 1.0)
-            test_eq = EquationFactory.create('test = 1', {'test': test_var})
+            # VariableFactory não está implementada, usar construtor direto
+            test_var = Variable(name='test', value=1.0)
+            
+            # EquationFactory não tem .create, usar .from_string
+            test_eq = EquationFactory.from_string('test + 1', locals_dict={'test': test_var})
+            # --- FIM DA CORREÇÃO ---
+            
             logger.debug("✅ Variable ↔ Equation compatibility OK")
         except Exception as e:
             errors_list.append(f"Variable/Equation incompatibilidade: {e}")
@@ -530,9 +541,6 @@ def get_core_bundle(
         'parse_quantity': parse_quantity,
         'ureg': ureg,
         'strip_units': strip_units,
-        'normalize_norm': normalize_norm,
-        'suggest_unit': suggest_unit,
-        'latex_unit': latex_unit,
         
         # Utilities
         'validate_deps': validate_imports,
@@ -589,26 +597,24 @@ def get_version() -> str:
     return "2.1.2"
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+# =Imagens
+# ============================================================================
+# CONFIG IMPORTS (Movido para o final para evitar import circular)
+# ============================================================================
+try:
+    from .config import get_config, set_option, get_option
+except ImportError as e:
+    logger.critical(f"Falha ao importar config: {e}. Funcionalidade limitada.")
+    def get_config(): return None
+    def set_option(k, v): pass
+    def get_option(k): return None
 
 
 # ============================================================================
 # EXPORTS (__all__)
 # ============================================================================
 __all__ = [
-    # ✅ Units V2.0 (API atualizada)
+    # Units V2.0 (API atualizada)
     'get_unit_registry',
     'reset_unit_registry',
     'UnitParser',
@@ -629,18 +635,20 @@ __all__ = [
     'Equation', 
     'EquationFactory',
     'StepRegistry', 
-    'StepPlugin', 
-    'GranularityType',
+    'Step',           # Adicionar Step
+    'StepType',       # Adicionar StepType
     
-    # Matrix (✅ COMPLETO)
+    # Matrix (COMPLETO)
     'Matrix',
     'MatrixType',
     'multiply_matrices_with_steps',
     'invert_matrix_with_steps',
-    'debug_matrix_parsing',  # ✅ ADICIONADO
+    'debug_matrix_parsing',  # ADICIONADO
     
     # Calculator
     'Calculator',
+    # 'CalculationResult', # Adicionar CalculationResult (precisa ser importado de calculator.py)
+    # 'CalculatorError',  # Adicionar CalculatorError (precisa ser importado de calculator.py)
     
     # Cache
     'ResultCache', 
@@ -649,16 +657,28 @@ __all__ = [
     # Utilities
     'get_core_bundle', 
     'validate_imports', 
-    'validate_compatibility',  # ✅ NOVA
+    'validate_compatibility',  # NOVA
     'get_version',
+    'get_config', # Adicionar config
+    'set_option', # Adicionar config
+    'get_option', # Adicionar config
     
-    # Flags (✅ TODAS AS FLAGS)
+    # Flags (TODAS AS FLAGS)
     'PINT_AVAILABLE',
     'SYMPY_AVAILABLE',
-    'NUMPY_AVAILABLE',  # ✅ ADICIONADO
-    'MATRIX_AVAILABLE',  # ✅ ADICIONADO
+    'NUMPY_AVAILABLE',  # ADICIONADO
+    'MATRIX_AVAILABLE',  # ADICIONADO
     'RECOGNITION_AVAILABLE',
 ]
+
+# --- ADIÇÃO: Importar classes ausentes no __all__ ---
+try:
+    from .calculator import CalculationResult, CalculatorError
+    __all__.extend(['CalculationResult', 'CalculatorError'])
+except ImportError:
+    pass
+# --- FIM DA ADIÇÃO ---
+
 
 __version__ = "2.1.2"
 __author__ = "PyMemorial Team"

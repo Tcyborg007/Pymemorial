@@ -32,8 +32,7 @@ try:
         Quantity,
         strip_units,
         StepRegistry,
-        StepPlugin,
-        GranularityType,
+        # StepPlugin, <-- REMOVIDO
         PINT_AVAILABLE,
         SYMPY_AVAILABLE,
         NUMPY_AVAILABLE, # Importa flags
@@ -214,10 +213,10 @@ class NaturalMemorialEditor:
         """
         # Remove espaços e quebras de linha extras
         matrix_expr = matrix_expr.strip()
-        
+
         # Remove separadores Markdown que possam estar incluídos
         matrix_expr = re.sub(r'\n---.*$', '', matrix_expr, flags=re.MULTILINE)
-        
+
         return matrix_expr
 
 
@@ -328,9 +327,9 @@ class NaturalMemorialEditor:
         """
         Builds a context dictionary mapping variable names to their
         numerical SI base values stored in self.variables.
-        
+
         ✅ v5.4.1: Robust value extraction with multiple fallbacks
-        
+
         Returns:
             Dict[str, Union[float, int, np.ndarray]]: Context for evaluation.
         """
@@ -339,45 +338,45 @@ class NaturalMemorialEditor:
             try:
                 # Try multiple extraction methods
                 value = None
-                
+
                 # Method 1: Direct .value attribute
                 if hasattr(var_obj, 'value') and var_obj.value is not None:
                     value = var_obj.value
-                
+
                 # Method 2: Quantity with magnitude
                 elif hasattr(var_obj, 'magnitude'):
                     value = var_obj.magnitude
-                
+
                 # Method 3: Direct numeric type
                 elif isinstance(var_obj, (int, float)):
                     value = var_obj
-                
+
                 # Method 4: NumPy types
                 elif NUMPY_AVAILABLE and isinstance(var_obj, (np.number, np.ndarray)):
                     value = var_obj
-                
+
                 # Method 5: Pint Quantity - strip units
                 elif PINT_AVAILABLE and isinstance(var_obj, Quantity):
                     value = strip_units(var_obj)
-                
+
                 # Method 6: Try float conversion as last resort
                 else:
                     try:
                         value = float(var_obj)
                     except (TypeError, ValueError, AttributeError):
                         pass
-                
+
                 # Add to context if value was extracted
                 if value is not None:
                     context[name] = value
                     logger.debug(f"  ✅ Context: '{name}' = {value}")
                 else:
                     logger.debug(f"  ⚠️ Variable '{name}' has no extractable value")
-                    
+
             except Exception as e:
                 logger.warning(f"  ⚠️ Error extracting value for '{name}': {e}")
                 continue
-        
+
         logger.debug(f"✅ Built numerical context with {len(context)} variables")
         return context
 
@@ -788,7 +787,7 @@ class NaturalMemorialEditor:
                 # Para operações complexas como 'T_rot.T @ K_local @ T_rot', a avaliação direta é mais segura.
                 # Vamos construir um contexto que inclua as matrizes como objetos NumPy.
                 eval_context = self._build_eval_context()
-                
+
                 # Adiciona os objetos Matrix e seus arrays NumPy avaliados ao contexto
                 for name, matrix_obj in self.matrices.items():
                     try:
@@ -1308,3 +1307,65 @@ class NaturalMemorialEditor:
 # EXPORTS
 # ============================================================================
 __all__ = ['NaturalMemorialEditor', 'DocumentType', 'RenderMode']
+
+# ============================================================================
+# CORE DEPENDENCIES (Importa tudo necessário do __init__.py do core)
+# ============================================================================
+try:
+    from pymemorial.core import (
+        Variable as CoreVariable,
+        Equation as CoreEquation,
+        VariableFactory,
+        Matrix, # Importa Matrix
+        parse_quantity,
+        ureg,
+        Quantity,
+        strip_units,
+        StepRegistry,
+        PINT_AVAILABLE,
+        SYMPY_AVAILABLE,
+        NUMPY_AVAILABLE, # Importa flags
+        MATRIX_AVAILABLE
+    )
+    # Importa operações de matriz se disponíveis
+    if MATRIX_AVAILABLE:
+        try:
+            from pymemorial.core.matrix_ops import MATRIX_OPERATIONS
+            MATRIX_OPS_AVAILABLE = True
+        except ImportError:
+            MATRIX_OPERATIONS = {}
+            MATRIX_OPS_AVAILABLE = False
+            logging.getLogger(__name__).warning("⚠️ Matrix Operations Module (matrix_ops) not found.")
+    else:
+        MATRIX_OPERATIONS = {}
+        MATRIX_OPS_AVAILABLE = False
+
+    CORE_AVAILABLE = True # Assume core básico está OK se chegou aqui
+
+    # Importa SymPy e NumPy diretamente se disponíveis (para funções matemáticas)
+    if SYMPY_AVAILABLE:
+        import sympy as sp
+    else:
+        sp = None
+    if NUMPY_AVAILABLE:
+        import numpy as np
+    else:
+        np = None
+
+except ImportError as e:
+    CORE_AVAILABLE = False
+    PINT_AVAILABLE = False
+    SYMPY_AVAILABLE = False
+    NUMPY_AVAILABLE = False
+    MATRIX_AVAILABLE = False
+    MATRIX_OPS_AVAILABLE = False
+    CoreVariable = None
+    CoreEquation = None
+    VariableFactory = None
+    Matrix = None
+    Quantity = float # Fallback type
+    sp = None
+    np = None
+    MATRIX_OPERATIONS = {}
+    logger = logging.getLogger(__name__)
+    logger.critical(f"PyMemorial Core failed to load: {e}. Engine functionality severely limited.")

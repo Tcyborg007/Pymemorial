@@ -1,0 +1,127 @@
+{
+  "metadata": {
+    "generator": "PyMemorial NaturalWriter v2.0",
+    "created_at": "2025-10-27T19:28:14.495605",
+    "language": "pt_BR",
+    "title": "Memorial de Cálculo Estrutural",
+    "subtitle": "Viga Simplesmente Apoiada - Análise Completa",
+    "author": "Engº João Silva, CREA 12345/SP",
+    "project": "Edifício Residencial XYZ",
+    "location": "São Paulo, SP",
+    "date": "27 de outubro de 2025",
+    "norm": "NBR 6118:2023",
+    "client": "Construtora ABC Ltda.",
+    "revision": "Rev. 00"
+  },
+  "sections": [
+    {
+      "title": "Introdução",
+      "content": "Este memorial apresenta o dimensionamento de viga simplesmente apoiada em concreto armado, de acordo com as prescrições da NBR 6118:2023.\n\nA viga está submetida a carregamento uniformemente distribuído e será dimensionada para resistir aos esforços de flexão simples.",
+      "level": 1,
+      "numbering": "1",
+      "metadata": {}
+    },
+    {
+      "title": "Dados de Entrada",
+      "content": "",
+      "level": 1,
+      "numbering": "2",
+      "metadata": {}
+    },
+    {
+      "title": "Geometria",
+      "content": "**Tabela 1 - Dados geométricos**\n\n| Parâmetro | Valor |\n| --- | --- |\n| Vão livre (L) | 6,00 m |\n| Base da seção (b_w) | 20 cm |\n| Altura total (h) | 50 cm |\n| Cobrimento (c) | 3,0 cm |",
+      "level": 2,
+      "numbering": "2.1",
+      "metadata": {}
+    },
+    {
+      "title": "Materiais",
+      "content": "**Tabela 2 - Materiais especificados**\n\n| Material | Classe | Resistência |\n| --- | --- | --- |\n| Concreto | C30 | f_ck = 30 MPa |\n| Aço | CA-50 | f_yk = 500 MPa |",
+      "level": 2,
+      "numbering": "2.2",
+      "metadata": {}
+    },
+    {
+      "title": "Carregamento",
+      "content": "- Peso próprio: 2,5 kN/m (calculado automaticamente)\n- Revestimento: 1,5 kN/m\n- Sobrecarga de utilização: 3,0 kN/m (NBR 6120:2019)\n- Carga total característica: q_k = 7,0 kN/m",
+      "level": 2,
+      "numbering": "2.3",
+      "metadata": {}
+    },
+    {
+      "title": "Esforços Solicitantes",
+      "content": "",
+      "level": 1,
+      "numbering": "3",
+      "metadata": {}
+    },
+    {
+      "title": "Carga de Cálculo",
+      "content": "A carga de cálculo é obtida aplicando-se os coeficientes de ponderação conforme NBR 6118:2023, item 11.7.1.\n\nCarga de cálculo:\n\n    1.4 × q_k\nSubstituindo os valores:\n    9.80000000000000\n    9,80 = 9,80 kN/m\n\nConforme NBR 6118:2023, item 11.7.1.",
+      "level": 2,
+      "numbering": "3.1",
+      "metadata": {}
+    },
+    {
+      "title": "Momento Fletor Máximo",
+      "content": "Para viga simplesmente apoiada com carga uniformemente distribuída, o momento fletor máximo ocorre no meio do vão e é dado por:\n\nMomento fletor de cálculo:\n\n    L ×  × 2 × q_d/8\nSubstituindo os valores:\n    44.1000000000000\n    44,10 = 44,10 kN⋅m",
+      "level": 2,
+      "numbering": "3.2",
+      "metadata": {}
+    },
+    {
+      "title": "Cortante Máxima",
+      "content": "Força cortante de cálculo nos apoios:\n\n    L × q_d/2\nSubstituindo os valores:\n    29.4000000000000\n    29,40 = 29,40 kN",
+      "level": 2,
+      "numbering": "3.3",
+      "metadata": {}
+    },
+    {
+      "title": "Dimensionamento à Flexão",
+      "content": "",
+      "level": 1,
+      "numbering": "4",
+      "metadata": {}
+    },
+    {
+      "title": "Altura Útil",
+      "content": "Considerando armadura dupla (2 camadas) com diâmetro estimado φ = 12,5 mm:\n\nAltura útil:\n\n    -c + h - phi/2 - phi_est\nSubstituindo os valores:\n    45.2500000000000\n    45,25 = 45,25 cm",
+      "level": 2,
+      "numbering": "4.1",
+      "metadata": {}
+    },
+    {
+      "title": "Momento Limite",
+      "content": "Verificação se a seção requer armadura dupla (comprimida):\n\nCoeficiente adimensional K_MD:\n\n    100 × M_d/(b_w × d ×  × 2 × f_cd)\nSubstituindo os valores:\n    0.00513841640398240\n    0,01 = 0,01\n\nConforme NBR 6118:2023, Tabela 17.1.\n\nComo K_MD < K_MD,lim = 0,295, a seção é de armadura simples.",
+      "level": 2,
+      "numbering": "4.2",
+      "metadata": {}
+    },
+    {
+      "title": "Área de Aço Necessária",
+      "content": "Área de aço de tração:\n\n    b_w × d × f_cd × (1 - (-2 × K_MD/f_cd + 1) ×  × 0.5)/f_yd\nSubstituindo os valores:\n    2.33652483868093\n    2,34 = 2,34 cm²",
+      "level": 2,
+      "numbering": "4.3",
+      "metadata": {}
+    },
+    {
+      "title": "Detalhamento da Armadura",
+      "content": "Com base na área de aço calculada (A_s = 5,21 cm²), adota-se:\n\nArmadura adotada:\n\n- Armadura longitudinal de tração: 4φ12,5 mm (A_s,ef = 4,91 cm²)\n- Armadura de pele: 2φ8,0 mm em cada face\n- Estribos: φ5,0 mm c/ 15 cm (zona de apoio)\n- Estribos: φ5,0 mm c/ 20 cm (zona central)",
+      "level": 1,
+      "numbering": "5",
+      "metadata": {}
+    },
+    {
+      "title": "Conclusão",
+      "content": "O dimensionamento da viga simplesmente apoiada foi realizado de acordo com as prescrições da NBR 6118:2023. A seção proposta atende a todos os critérios de segurança e estados limites de serviço.\n\nA armadura adotada (4φ12,5 mm) resulta em uma taxa de armadura ρ = 1,1%, dentro dos limites prescritos pela norma (ρ_min = 0,15% e ρ_max = 4,0%).",
+      "level": 1,
+      "numbering": "6",
+      "metadata": {}
+    }
+  ],
+  "statistics": {
+    "section_count": 15,
+    "total_chars": 2650
+  }
+}
